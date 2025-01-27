@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net"
 )
@@ -13,7 +14,11 @@ func StartServer() {
     server := NewServer(":3000")
     go func() {
         for msg := range server.msgCh {
-            fmt.Println("Message recieved:", string(msg))
+            fmt.Printf(
+                "Message recieved from (%s):\n%s\n", 
+                msg.from,
+                string(msg.payload),
+            )
         }
     }()
 
@@ -21,27 +26,32 @@ func StartServer() {
 }
 
 
+type Message struct {
+    from    string
+    payload []byte
+}
 
 type GameServer struct {
-    liAddr  string
-    li      net.Listener
-    quitCh  chan struct{}
-    msgCh   chan []byte
+    addr        string              // listener address
+    listener    net.Listener        
+    quitCh      chan struct{}       // 0 byte channel (idk why)
+    msgCh       chan Message        // 
+    conns       map[net.Addr]string // map of ip to profile
 }
 
 func NewServer(listenerAddr string) *GameServer {
     return &GameServer {
-        liAddr: listenerAddr,
+        addr: listenerAddr,
         quitCh: make(chan struct{}),
-        msgCh: make(chan []byte, 10),
+        msgCh: make(chan Message, 10),
     }
 }
 
 func (s *GameServer) Start() error {
-    li, err := net.Listen("tcp", s.liAddr)
+    li, err := net.Listen("tcp", s.addr)
     if err != nil { return err }
     defer li.Close()
-    s.li = li
+    s.listener = li
 
     go s.listen()
     <-s.quitCh
@@ -52,7 +62,7 @@ func (s *GameServer) Start() error {
 
 func (s *GameServer) listen() {
     for {
-        conn, err := s.li.Accept()
+        conn, err := s.listener.Accept()
         if err != nil {
             fmt.Println("Accept error:", err)
             continue
@@ -70,11 +80,15 @@ func (s *GameServer) read(c net.Conn) {
     for {
         n, err := c.Read(buf)
         if err != nil {
+            if err == io.EOF { return }
             fmt.Println("Read err:", err)
             continue
         }
 
-        s.msgCh <- buf[:n]
+        s.msgCh <- Message {
+            from: c.RemoteAddr().String(),
+            payload: buf[:n],
+        }
     }
 }
 
