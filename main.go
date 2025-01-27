@@ -1,6 +1,7 @@
 package main
 
 import (
+    "net"
 	. "main/utils"
 	. "github.com/gen2brain/raylib-go/raylib"
 )
