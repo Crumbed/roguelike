@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"main/server"
 	"net"
@@ -30,7 +29,7 @@ func getProgramType() ProgramType {
 
 const (
     Host = "localhost"
-    Port = "12345"
+    Port = "3000"
     Type = "tcp"
 )
 
@@ -39,7 +38,7 @@ func main() {
     p_type := getProgramType()
 
     if p_type == Server {
-        server.Start()
+        server.StartServer()
         return
     }
 
@@ -59,20 +58,7 @@ func main() {
     if err != nil {
         log.Fatal("Failed to write data to connection: ", err)
     }
-
-    recv := make([]byte, 4096)
-    for {
-        println("Reading data...")
-        temp := make([]byte, 4096)
-        _, err = conn.Read(temp)
-        if err != nil {
-            if err == io.EOF { break }
-            log.Fatal("Failed to read data: ", err)
-        }
-
-        recv = append(recv, temp...)
-    }
-
-    println("Recieved msg: ", string(recv))
+    
+    for {}
 }
 

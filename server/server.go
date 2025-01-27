@@ -2,59 +2,80 @@ package server
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"net"
 )
 
 
 
-func Start() {
+func StartServer() {
     fmt.Println("Running server")
-    // start listening
-    listener, err := net.Listen("tcp4", ":12345")
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer listener.Close()
-
-    // listen for connections
-    for {
-        c, err := listener.Accept()
-        if err != nil {
-            fmt.Println(err)
-            return
+    server := NewServer(":3000")
+    go func() {
+        for msg := range server.msgCh {
+            fmt.Println("Message recieved:", string(msg))
         }
+    }()
 
-        go handleCon(c)
-    }
+    log.Fatal(server.Start())
 }
 
-func handleCon(c net.Conn) {
-    fmt.Printf("Serving %s\n", c.RemoteAddr().String())
-    packet := make([]byte, 4096)
-    tmp := make([]byte, 4096)
-    defer c.Close()
-
-    for {
-        _, err := c.Read(tmp)
-        if err != nil {
-            if err != io.EOF {
-                fmt.Println("Read error:", err)
-            }
-
-            break
-        }
-
-        packet = append(packet, tmp...)
-    }
-
-    c.Write(packet)
-}
 
 
 type GameServer struct {
+    liAddr  string
+    li      net.Listener
+    quitCh  chan struct{}
+    msgCh   chan []byte
 }
 
+func NewServer(listenerAddr string) *GameServer {
+    return &GameServer {
+        liAddr: listenerAddr,
+        quitCh: make(chan struct{}),
+        msgCh: make(chan []byte, 10),
+    }
+}
+
+func (s *GameServer) Start() error {
+    li, err := net.Listen("tcp", s.liAddr)
+    if err != nil { return err }
+    defer li.Close()
+    s.li = li
+
+    go s.listen()
+    <-s.quitCh
+    close(s.msgCh)
+
+    return nil
+}
+
+func (s *GameServer) listen() {
+    for {
+        conn, err := s.li.Accept()
+        if err != nil {
+            fmt.Println("Accept error:", err)
+            continue
+        }
+
+        fmt.Println("New connection from:", conn.RemoteAddr())
+        go s.read(conn)
+    }
+}
+
+func (s *GameServer) read(c net.Conn) {
+    defer c.Close()
+    buf := make([]byte, 2048)
+
+    for {
+        n, err := c.Read(buf)
+        if err != nil {
+            fmt.Println("Read err:", err)
+            continue
+        }
+
+        s.msgCh <- buf[:n]
+    }
+}
 
 
