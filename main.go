@@ -1,26 +1,74 @@
 package main
 
 import (
-    "github.com/gen2brain/raylib-go/raylib"
-    "fmt"
+	. "main/utils"
+	. "github.com/gen2brain/raylib-go/raylib"
 )
 
-func render() {
-    rl.BeginDrawing()
-    rl.ClearBackground(rl.RayWhite)
-    rl.DrawText("Congrats! You created your first window!", 190, 200, 20, rl.LightGray)
-    rl.EndDrawing()
+type Player struct {
+    Texture     Texture2D
+    DestRect    Rectangle
+    Vel         Vector2
+}
+
+
+func (p *Player) move() {
+    p.Vel.X = 0
+    p.Vel.Y = 0
+
+    if IsKeyDown(KeyD) {
+        p.Vel.X = 100
+    }
+    if IsKeyDown(KeyA) {
+        p.Vel.X = -100
+    }
+
+    if IsKeyDown(KeyW) {
+        p.Vel.Y = -100
+    }
+    if IsKeyDown(KeyS) {
+        p.Vel.Y = 100
+    }
+}
+
+func (p *Player) applyVelocity() {
+    p.DestRect.X += p.Vel.X * GetFrameTime()
+    p.DestRect.Y += p.Vel.Y * GetFrameTime()
+}
+
+func (self *Player) draw() {
+    DrawTexturePro(
+        self.Texture,
+        Rect(0, 0, 16, 16),
+        self.DestRect,
+        Vec2(0, 0),
+        0,
+        RayWhite,
+    )
 }
 
 func main() {
-    fmt.Println("Hello, world")
+    InitWindow(600, 400, "Game window")
+    SetTargetFPS(60)
 
-    rl.InitWindow(800, 450, "raylib [core] example - basic window")
-    rl.SetTargetFPS(60)
-
-    for !rl.WindowShouldClose() {
-        render()
+    player := Player {
+        Texture: LoadTexture("assets/player.png"),
+        DestRect: Rect(10, 100, 100, 100),
     }
 
-    rl.CloseWindow()
+    for !WindowShouldClose() {
+        player.move()
+        player.applyVelocity()
+
+        BeginDrawing()
+        ClearBackground(SkyBlue)
+
+        //rl.DrawTexture(playerTexture, 10, 100, rl.RayWhite)
+        player.draw()
+
+        EndDrawing()
+    }
+
+    UnloadTexture(player.Texture)
+    CloseWindow()
 }
