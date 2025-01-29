@@ -10,6 +10,15 @@ import (
 )
 
 
+func CSProfileListener(context PacketContext, data proto.Message) {
+    sender := context.Sender.(net.Conn)
+    profile := NewProfile(context.Sender.(net.Conn), data.(*packet.Profile))
+    context.Server.ipconns[sender.RemoteAddr()] = profile
+    context.Server.idconns[profile.Uuid] = profile
+
+    fmt.Printf("Player connected:\n%s\n", *profile)
+}
+
 
 
 type Profile struct {
@@ -25,6 +34,10 @@ func (self *Profile) String() string {
         self.Name,
         self.Uuid,
     )
+}
+
+func (self *Profile) RemoteAddr() net.Addr {
+    return self.Conn.RemoteAddr()
 }
 
 func (self *Profile) SendPacket(packet *packet.Packet) error {

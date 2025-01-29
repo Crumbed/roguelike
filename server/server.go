@@ -16,10 +16,21 @@ import (
 func StartServer() {
     fmt.Println("Running server")
     server := NewServer(":3000")
+    server.AddPacketListener(packet.Type_CSProfile, CSProfileListener)
 
     log.Fatal(server.Start())
 }
 
+type PacketSender interface {
+    RemoteAddr()    net.Addr
+}
+
+type PacketListener func(PacketContext, proto.Message)
+
+type PacketContext struct {
+    Sender  PacketSender
+    Server  *GameServer
+}
 
 type Message struct {
     From    net.Conn
@@ -33,6 +44,7 @@ type GameServer struct {
     msgCh       chan Message        
     ipconns     map[net.Addr]*Profile 
     idconns     map[uuid.UUID]*Profile 
+    p_listeners map[packet.Type][]PacketListener
 }
 
 func NewServer(listenerAddr string) *GameServer {
@@ -42,6 +54,7 @@ func NewServer(listenerAddr string) *GameServer {
         msgCh: make(chan Message, 10),
         ipconns: make(map[net.Addr]*Profile),
         idconns: make(map[uuid.UUID]*Profile),
+        p_listeners: make(map[packet.Type][]PacketListener),
     }
 }
 
@@ -89,8 +102,7 @@ func (s *GameServer) read(c net.Conn) {
             continue
         }
         
-        p := &packet.Packet{}
-        err = proto.Unmarshal(buf[:n], p)
+        p, err := packet.ReadPacket(buf[:n])
         if err != nil {
             fmt.Println("Failed to read packet:", err)
             continue
@@ -113,37 +125,50 @@ func (s *GameServer) SendPacket(packet *packet.Packet, profiles ...*Profile) err
 }
 
 func (s *GameServer) handleMsgs() {
+    context := PacketContext { Server: s }
     for msg := range s.msgCh {
         p := msg.Packet
-        if p.Type == packet.Type_CSProfile {
-            p_profile := &packet.Profile{}
-            err := proto.Unmarshal(p.Data, p_profile)
-            if err != nil {
-                fmt.Println("Unmarshal error:", err)
-                continue
-            }
-            
-            profile := NewProfile(msg.From, p_profile)
-            s.ipconns[msg.From.RemoteAddr()] = profile
-            s.idconns[profile.Uuid] = profile
-            
-            fmt.Printf("Player connected:\n%s\n", *profile)
+        sender := s.ipconns[msg.From.RemoteAddr()]
+        if sender == nil {
+            context.Sender = msg.From
+        } else {
+            context.Sender = sender
         }
 
+        buf := packet.InitPacketBuffer(p.Type)
+        err := proto.Unmarshal(p.Data, buf)
+        if err != nil {
+            fmt.Println("Unmarshal error:", err)
+            continue
+        }
+
+        listeners := s.p_listeners[p.Type]
+        if listeners == nil { continue }
+        for _, listener := range listeners {
+            listener(context, buf)
+        }
     }
 }
 
 
+func (s *GameServer) AddPacketListener(
+    packet_type packet.Type,
+    listener func(PacketContext, proto.Message),
+) {
+    listeners := s.p_listeners[packet_type]
+    if listeners == nil {
+        listeners = make([]PacketListener, 0, 10)
+    }
+
+    listeners = append(listeners, listener)
+}
+
 func (s *GameServer) RemovePlayerId(uuid uuid.UUID) {
-    profile := s.idconns[uuid]
     delete(s.idconns, uuid)
-    delete(s.ipconns, profile.Conn.RemoteAddr())
 }
 
 func (s *GameServer) RemovePlayerIp(ip net.Addr) {
-    profile := s.ipconns[ip]
     delete(s.ipconns, ip)
-    delete(s.idconns, profile.Uuid)
 }
 
 
