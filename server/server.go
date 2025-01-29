@@ -7,6 +7,7 @@ import (
 	"main/server/packet"
 	"net"
 
+	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -29,8 +30,9 @@ type GameServer struct {
     addr        string              // listener address
     listener    net.Listener        
     quitCh      chan struct{}       // 0 byte channel (idk why)
-    msgCh       chan Message        // 
-    conns       map[net.Addr]string // map of ip to profile
+    msgCh       chan Message        
+    ipconns     map[net.Addr]*Profile 
+    idconns     map[uuid.UUID]*Profile 
 }
 
 func NewServer(listenerAddr string) *GameServer {
@@ -38,7 +40,8 @@ func NewServer(listenerAddr string) *GameServer {
         addr: listenerAddr,
         quitCh: make(chan struct{}),
         msgCh: make(chan Message, 10),
-        conns: make(map[net.Addr]string),
+        ipconns: make(map[net.Addr]*Profile),
+        idconns: make(map[uuid.UUID]*Profile),
     }
 }
 
@@ -99,19 +102,18 @@ func (s *GameServer) handleMsgs() {
     for msg := range s.msgCh {
         p := msg.Packet
         if p.Type == packet.Type_CSProfile {
-            profile := &packet.Profile{}
-            err := proto.Unmarshal(p.Data, profile)
+            p_profile := &packet.Profile{}
+            err := proto.Unmarshal(p.Data, p_profile)
             if err != nil {
                 fmt.Println("Unmarshal error:", err)
                 continue
             }
-            s.conns[msg.From] = profile.GetName()
             
-            fmt.Printf(
-                "Message recieved from (%s):\n%s\n", 
-                msg.From,
-                profile,
-            )
+            profile := NewProfile(msg.From, p_profile)
+            s.ipconns[msg.From] = profile
+            s.idconns[profile.Uuid] = profile
+            
+            fmt.Printf("Player connected: %s\n", *profile)
         }
 
     }
