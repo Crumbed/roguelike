@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"main/server"
+	"main/server/packet"
 	"net"
 	"os"
 )
@@ -54,7 +55,13 @@ func main() {
     }
     defer conn.Close()
 
-    _, err = conn.Write([]byte("Test"))
+    profile := &packet.Profile { Name: "Kai" }
+    data, err := packet.CreatePacket(packet.Type_CSProfile, profile)
+    if err != nil {
+        log.Fatal("Marshal error:", err)
+    }
+
+    _, err = conn.Write(data)
     if err != nil {
         log.Fatal("Failed to write data to connection: ", err)
     }

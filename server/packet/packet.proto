@@ -1,0 +1,12 @@
+syntax = "proto3";
+package packet;
+option go_package = "/server/packet";
+
+enum Type {
+    CSProfile = 0;
+}
+
+message Packet {
+    Type    type = 1;
+    bytes   data = 2;
+}
