@@ -79,7 +79,12 @@ func (s *GameServer) read(c net.Conn) {
     for {
         n, err := c.Read(buf)
         if err != nil {
-            if err == io.EOF { return }
+            if err == io.EOF {
+                ip := c.RemoteAddr()
+                s.RemovePlayerIp(ip)
+                fmt.Printf("Player %s has disconnected\n", ip)
+                return 
+            }
             fmt.Println("Read err:", err)
             continue
         }
@@ -120,5 +125,16 @@ func (s *GameServer) handleMsgs() {
 }
 
 
+func (s *GameServer) RemovePlayerId(uuid uuid.UUID) {
+    profile := s.idconns[uuid]
+    delete(s.idconns, uuid)
+    delete(s.ipconns, profile.Ip)
+}
+
+func (s *GameServer) RemovePlayerIp(ip net.Addr) {
+    profile := s.ipconns[ip]
+    delete(s.ipconns, ip)
+    delete(s.idconns, profile.Uuid)
+}
 
 
