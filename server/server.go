@@ -22,7 +22,7 @@ func StartServer() {
 
 
 type Message struct {
-    From    net.Addr
+    From    net.Conn
     Packet  *packet.Packet
 }
 
@@ -97,10 +97,19 @@ func (s *GameServer) read(c net.Conn) {
         }
 
         s.msgCh <- Message {
-            From: c.RemoteAddr(),
+            From: c,
             Packet: p,
         }
     }
+}
+
+func (s *GameServer) SendPacket(packet *packet.Packet, profiles ...*Profile) error {
+    var err error
+    for _, p := range profiles {
+        err = p.SendPacket(packet)       
+    }
+
+    return err
 }
 
 func (s *GameServer) handleMsgs() {
@@ -115,10 +124,10 @@ func (s *GameServer) handleMsgs() {
             }
             
             profile := NewProfile(msg.From, p_profile)
-            s.ipconns[msg.From] = profile
+            s.ipconns[msg.From.RemoteAddr()] = profile
             s.idconns[profile.Uuid] = profile
             
-            fmt.Printf("Player connected: %s\n", *profile)
+            fmt.Printf("Player connected:\n%s\n", *profile)
         }
 
     }
@@ -128,7 +137,7 @@ func (s *GameServer) handleMsgs() {
 func (s *GameServer) RemovePlayerId(uuid uuid.UUID) {
     profile := s.idconns[uuid]
     delete(s.idconns, uuid)
-    delete(s.ipconns, profile.Ip)
+    delete(s.ipconns, profile.Conn.RemoteAddr())
 }
 
 func (s *GameServer) RemovePlayerIp(ip net.Addr) {
