@@ -2,11 +2,19 @@ package main
 
 import (
 	"fmt"
+	"image/color"
+	"io"
+
+	//"io"
 	"log"
 	"main/server"
 	"main/server/packet"
 	"net"
 	"os"
+
+	. "github.com/gen2brain/raylib-go/raylib"
+	"google.golang.org/protobuf/proto"
+	//"google.golang.org/protobuf/proto"
 )
 
 type ProgramType int
@@ -50,6 +58,7 @@ func main() {
     }
 
     conn, err := net.DialTCP(Type, nil, tcpServer)
+    fmt.Println("Establishing connection to:", Host)
     if err != nil {
         log.Fatal("Failed to dial server: ", err)
     }
@@ -61,11 +70,82 @@ func main() {
         log.Fatal("Marshal error:", err)
     }
 
+    fmt.Println("Signing in to:", conn.RemoteAddr())
     _, err = conn.Write(data)
     if err != nil {
         log.Fatal("Failed to write data to connection: ", err)
     }
-    
-    for {}
+    fmt.Println("Success!")
+    client := &GameClient {
+        Conn: conn,
+        BgColor: SkyBlue,
+    }
+    go client.listen()
+
+    InitWindow(600, 400, "Game window")
+    SetTargetFPS(60)
+    for !WindowShouldClose() {
+        BeginDrawing()
+        ClearBackground(client.BgColor)
+
+        EndDrawing()
+    }
+
+    CloseWindow()
 }
+
+
+type GameClient struct {
+    Conn        net.Conn
+    BgColor     color.RGBA
+}
+
+func (c *GameClient) listen() {
+    buf := make([]byte, 2048)
+    for {
+        n, err := c.Conn.Read(buf)
+        if err != nil {
+            if err == io.EOF {
+                fmt.Println("Connection lost")
+                return 
+            }
+            fmt.Println("Read err:", err)
+            continue
+        }
+        
+        p, err := packet.ReadPacket(buf[:n])
+        if err != nil {
+            fmt.Println("Failed to read packet:", err)
+            continue
+        }
+
+        pktBuf := packet.InitPacketBuffer(p.Type)
+        err = proto.Unmarshal(p.Data, pktBuf)
+        if err != nil {
+            fmt.Println("Unmarshal error:", err)
+            continue
+        }
+
+        if p.Type == packet.Type_SCBGColor {
+            fmt.Println("Changing color")
+            c.changeColor(pktBuf.(*packet.BackgroundColor))
+        }
+    }
+}
+
+
+func (c *GameClient) changeColor(p_color *packet.BackgroundColor) {
+    rgb := p_color.Rgba
+    col := NewColor(rgb[0], rgb[1], rgb[2], rgb[3])
+    c.BgColor = col
+}
+
+
+
+
+
+
+
+
+
 

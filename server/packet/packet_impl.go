@@ -17,6 +17,8 @@ func InitPacketBuffer(kind Type) proto.Message {
     switch kind {
     case Type_CSProfile:
         data = &Profile{}
+    case Type_SCBGColor:
+        data = &BackgroundColor{}
     default:
         log.Fatal("Invalid Packet Type:", kind)
     }
@@ -43,6 +45,9 @@ func CreatePacket(kind Type, data proto.Message) ([]byte, error) {
     return bytes, nil
 }
 
+func NewBgColor(r byte, b byte, g byte, a byte) *BackgroundColor {
+    return &BackgroundColor { Rgba: []byte { r, b, g, a } }
+}
 
 
 

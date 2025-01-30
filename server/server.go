@@ -1,11 +1,14 @@
 package server
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"log"
 	"main/server/packet"
 	"net"
+	"os"
+	"time"
 
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
@@ -17,8 +20,8 @@ func StartServer() {
     fmt.Println("Running server")
     server := NewServer(":3000")
     server.AddPacketListener(packet.Type_CSProfile, CSProfileListener)
-
-    log.Fatal(server.Start())
+    err := server.Start()
+    if err != nil { log.Fatal(err) }
 }
 
 type PacketSender interface {
@@ -40,22 +43,32 @@ type Message struct {
 type GameServer struct {
     addr        string              // listener address
     listener    net.Listener        
-    quitCh      chan struct{}       // 0 byte channel (idk why)
     msgCh       chan Message        
+    stop        bool
+    cmd         string
     ipconns     map[net.Addr]*Profile 
     idconns     map[uuid.UUID]*Profile 
     p_listeners map[packet.Type][]PacketListener
+    logs        []string
 }
 
 func NewServer(listenerAddr string) *GameServer {
     return &GameServer {
         addr: listenerAddr,
-        quitCh: make(chan struct{}),
         msgCh: make(chan Message, 10),
+        stop: false,
+        cmd: "",
         ipconns: make(map[net.Addr]*Profile),
         idconns: make(map[uuid.UUID]*Profile),
         p_listeners: make(map[packet.Type][]PacketListener),
+        logs: make([]string, 0, 10),
     }
+}
+
+func (s *GameServer) readCommand() string {
+    cmd := s.cmd
+    s.cmd = ""
+    return cmd
 }
 
 func (s *GameServer) Start() error {
@@ -64,23 +77,84 @@ func (s *GameServer) Start() error {
     defer li.Close()
     s.listener = li
 
+    go s.startReading()
     go s.listen()
     go s.handleMsgs()
-    <-s.quitCh
-    close(s.msgCh)
 
+    InputLoop: for {
+        if s.cmd == "" { continue }
+        cmd := s.readCommand()
+
+        switch cmd {
+        case "stop":
+            fmt.Println("Stopping server...")
+            s.stop = true
+            time.Sleep(5 * time.Second) // wait for all running threads to stop
+            break InputLoop
+        case "bg red":
+            packet, err := packet.NewPacket(
+                packet.Type_SCBGColor,
+                packet.NewBgColor(255, 0, 0, 0))
+            if err != nil { return err }
+            s.SendAllPacket(packet)
+        case "bg green":
+            packet, err := packet.NewPacket(
+                packet.Type_SCBGColor,
+                packet.NewBgColor(0, 255, 0, 0))
+            if err != nil { return err }
+            s.SendAllPacket(packet)
+        case "bg blue":
+            packet, err := packet.NewPacket(
+                packet.Type_SCBGColor,
+                packet.NewBgColor(0, 0, 255, 0))
+            if err != nil { return err }
+            s.SendAllPacket(packet)
+        case "debug":
+            fmt.Println(*s)
+        default: 
+            fmt.Println("Invalid command:", cmd)
+        }
+    }
+
+    close(s.msgCh)
     return nil
 }
 
+func (s *GameServer) startReading() {
+    stdin := bufio.NewReader(os.Stdin)
+    for {
+        //fmt.Print("> ")
+        input, err := stdin.ReadString('\n')
+        if err != nil { log.Fatal("read err:", err) }
+        input = input[:len(input)-1]
+        s.cmd = input
+        //fmt.Println("input:", input)
+    }
+}
+
+func (s *GameServer) Log(a ...any) {
+    str := fmt.Sprintln(a...)
+    fmt.Println(str)
+    s.logs = append(s.logs, str)
+}
+
+func (s *GameServer) Logf(format string, a ...any) {
+    str := fmt.Sprintf(format, a...)
+    fmt.Print(str)
+    s.logs = append(s.logs, str)
+}
+
+
 func (s *GameServer) listen() {
     for {
+        if s.stop { return }
         conn, err := s.listener.Accept()
         if err != nil {
-            fmt.Println("Accept error:", err)
+            s.Log("Accept error:", err)
             continue
         }
 
-        fmt.Println("New connection from:", conn.RemoteAddr())
+        s.Log("New connection from:", conn.RemoteAddr())
         go s.read(conn)
     }
 }
@@ -90,21 +164,22 @@ func (s *GameServer) read(c net.Conn) {
     buf := make([]byte, 2048)
 
     for {
+        if s.stop { return }
         n, err := c.Read(buf)
         if err != nil {
             if err == io.EOF {
                 ip := c.RemoteAddr()
                 s.RemovePlayerIp(ip)
-                fmt.Printf("Player %s has disconnected\n", ip)
+                s.Logf("Player %s has disconnected\n", ip)
                 return 
             }
-            fmt.Println("Read err:", err)
+            s.Log("Read err:", err)
             continue
         }
         
         p, err := packet.ReadPacket(buf[:n])
         if err != nil {
-            fmt.Println("Failed to read packet:", err)
+            s.Log("Failed to read packet:", err)
             continue
         }
 
@@ -115,10 +190,23 @@ func (s *GameServer) read(c net.Conn) {
     }
 }
 
+func (s *GameServer) SendAllPacket(packet *packet.Packet) error {
+    s.Log("Sending packet to all connections")
+    var err error
+    for _, p := range s.ipconns {
+        s.Log("Sending to", p.Conn.RemoteAddr())
+        err = p.SendPacket(packet)
+        if err != nil { break }
+    }
+
+    return err
+}
+
 func (s *GameServer) SendPacket(packet *packet.Packet, profiles ...*Profile) error {
     var err error
     for _, p := range profiles {
         err = p.SendPacket(packet)       
+        if err != nil { break }
     }
 
     return err
@@ -127,6 +215,7 @@ func (s *GameServer) SendPacket(packet *packet.Packet, profiles ...*Profile) err
 func (s *GameServer) handleMsgs() {
     context := PacketContext { Server: s }
     for msg := range s.msgCh {
+        if s.stop { return }
         p := msg.Packet
         sender := s.ipconns[msg.From.RemoteAddr()]
         if sender == nil {
@@ -138,7 +227,7 @@ func (s *GameServer) handleMsgs() {
         buf := packet.InitPacketBuffer(p.Type)
         err := proto.Unmarshal(p.Data, buf)
         if err != nil {
-            fmt.Println("Unmarshal error:", err)
+            s.Log("Unmarshal error:", err)
             continue
         }
 
@@ -161,6 +250,7 @@ func (s *GameServer) AddPacketListener(
     }
 
     listeners = append(listeners, listener)
+    s.p_listeners[packet_type] = listeners
 }
 
 func (s *GameServer) RemovePlayerId(uuid uuid.UUID) {

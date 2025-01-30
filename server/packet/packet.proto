@@ -4,6 +4,7 @@ option go_package = "/server/packet";
 
 enum Type {
     CSProfile = 0;
+    SCBGColor = 1;
 }
 
 message Packet {

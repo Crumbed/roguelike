@@ -16,7 +16,7 @@ func CSProfileListener(context PacketContext, data proto.Message) {
     context.Server.ipconns[sender.RemoteAddr()] = profile
     context.Server.idconns[profile.Uuid] = profile
 
-    fmt.Printf("Player connected:\n%s\n", *profile)
+    context.Server.Logf("Player connected:\n%s\n", *profile)
 }
 
 
@@ -38,6 +38,11 @@ func (self *Profile) String() string {
 
 func (self *Profile) RemoteAddr() net.Addr {
     return self.Conn.RemoteAddr()
+}
+
+func (self *Profile) SendPacketBytes(data []byte) error {
+    _, err := self.Conn.Write(data)
+    return err
 }
 
 func (self *Profile) SendPacket(packet *packet.Packet) error {
