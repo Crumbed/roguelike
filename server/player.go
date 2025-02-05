@@ -13,6 +13,7 @@ import (
 func CSProfileListener(context packet.PacketContext, data proto.Message) {
     sender := context.Sender.(net.Conn)
     server := context.Handler.(*GameServer)
+
     profile := NewProfile(context.Sender.(net.Conn), data.(*packet.Profile))
     server.ipconns[sender.RemoteAddr()] = profile
     server.idconns[profile.Uuid] = profile

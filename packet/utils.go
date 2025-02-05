@@ -17,7 +17,7 @@ type PacketHandler interface {
     SendPacket(packet *Packet)   error
 }
 
-type PacketListener func(PacketContext, proto.Message)
+type PacketListener func(*PacketContext, proto.Message)
 
 type PacketContext struct {
     Sender  PacketSender

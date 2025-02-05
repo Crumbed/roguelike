@@ -225,7 +225,7 @@ func (s *GameServer) handleMsgs() {
         listeners := s.p_listeners[p.Type]
         if listeners == nil { continue }
         for _, listener := range listeners {
-            listener(context, buf)
+            listener(&context, buf)
         }
     }
 }
@@ -233,7 +233,7 @@ func (s *GameServer) handleMsgs() {
 
 func (s *GameServer) AddPacketListener(
     packet_type packet.Type,
-    listener func(packet.PacketContext, proto.Message),
+    listener func(*packet.PacketContext, proto.Message),
 ) {
     listeners := s.p_listeners[packet_type]
     if listeners == nil {
