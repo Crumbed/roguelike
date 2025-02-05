@@ -1,8 +1,0 @@
-syntax = "proto3";
-package packet;
-option go_package = "/server/packet";
-
-message Profile {
-    string  name = 1;
-}
-

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"io"
 	"main/packet"
+	"main/server"
 	"net"
 
 	. "github.com/gen2brain/raylib-go/raylib"
-	"google.golang.org/protobuf/proto"
 )
 
 
@@ -16,13 +16,14 @@ import (
 func NewClient() *Client {
     return &Client {
         Conn: nil,
-        p_listeners: make(map[packet.Type][]packet.PacketListener),
+        p_listeners: make(map[packet.PacketType][]packet.PacketListener),
     }
 }
 
 type Client struct {
     Conn        net.Conn
-    p_listeners map[packet.Type][]packet.PacketListener
+    p_listeners map[packet.PacketType][]packet.PacketListener
+    MyPos       Vector2
 }
 
 func (c *Client) Start() {
@@ -73,22 +74,17 @@ func (self *Client) listen() {
             continue
         }
         
-        p, err := packet.ReadPacket(buf[:n])
-        if err != nil {
-            fmt.Println("Failed to read packet:", err)
-            continue
-        }
-
+        p := packet.ReadPacket(buf[:n])
         self.handlePacket(context, p)
     }
 }
 
-func (c *Client) handlePacket(context *packet.PacketContext, p *packet.Packet) {
+func (c *Client) handlePacket(context *packet.PacketContext, p *packet.RawPacket) {
     //if s.stop { return }
-    buf := packet.InitPacketBuffer(p.Type)
-    err := proto.Unmarshal(p.Data, buf)
+    buf := p.Type.InitPacket()
+    err := buf.Deserialize(p.Data)
     if err != nil {
-        fmt.Println("Unmarshal error:", err)
+        fmt.Println("Packet Read error:", err)
         return
     }
 
@@ -99,8 +95,8 @@ func (c *Client) handlePacket(context *packet.PacketContext, p *packet.Packet) {
     }
 }
 
-func (c *Client) SendPacket(packet *packet.Packet) error {
-    data, err := proto.Marshal(packet)
+func (c *Client) SendPacket(packet packet.Packet) error {
+    data, err := packet.Serialize()
     if err != nil { return err }
 
     _, err = c.Conn.Write(data)
@@ -108,7 +104,7 @@ func (c *Client) SendPacket(packet *packet.Packet) error {
 }
 
 func (c *Client) render() {
-    InitWindow(600, 400, "Game window")
+    InitWindow(server.Width, server.Height, "Game window")
     SetTargetFPS(60)
     black := NewColor(0, 0, 0, 0)
 

@@ -52,65 +52,15 @@ func main() {
 
     client := client.NewClient()   
     client.Start()
-    // client   
+    // default server
     tcpIp, err := net.ResolveTCPAddr(Type, Host + ":" + Port)
     if err != nil {
         log.Fatal("Failed to resolve tcp addr: ", err)
     }
     client.Connect(tcpIp)
 
-    /*
-    profile := &packet.Profile { Name: "Kai" }
-    data, err := packet.CreatePacket(packet.Type_CSProfile, profile)
-    if err != nil {
-        log.Fatal("Marshal error:", err)
-    }
-
-    fmt.Println("Signing in to:", conn.RemoteAddr())
-    _, err = conn.Write(data)
-    if err != nil {
-        log.Fatal("Failed to write data to connection: ", err)
-    }
-    fmt.Println("Success!")
-    */
-
 }
 
-
-/*
-func (c *GameClient) listen() {
-    buf := make([]byte, 2048)
-    for {
-        n, err := c.Conn.Read(buf)
-        if err != nil {
-            if err == io.EOF {
-                fmt.Println("Connection lost")
-                return 
-            }
-            fmt.Println("Read err:", err)
-            continue
-        }
-        
-        p, err := packet.ReadPacket(buf[:n])
-        if err != nil {
-            fmt.Println("Failed to read packet:", err)
-            continue
-        }
-
-        pktBuf := packet.InitPacketBuffer(p.Type)
-        err = proto.Unmarshal(p.Data, pktBuf)
-        if err != nil {
-            fmt.Println("Unmarshal error:", err)
-            continue
-        }
-
-        if p.Type == packet.Type_SCBGColor {
-            fmt.Println("Changing color")
-            c.changeColor(pktBuf.(*packet.BackgroundColor))
-        }
-    }
-}
-*/
 
 
 

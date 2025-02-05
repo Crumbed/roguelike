@@ -10,7 +10,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/google/uuid"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -19,7 +18,7 @@ import (
 func StartServer() {
     fmt.Println("Running server")
     server := NewServer(":3000")
-    server.AddPacketListener(packet.Type_CSProfile, CSProfileListener)
+    server.AddPacketListener(packet.CSConnect, CSConnectListener)
     err := server.Start()
     if err != nil { log.Fatal(err) }
 }
@@ -27,19 +26,20 @@ func StartServer() {
 
 type Message struct {
     From    net.Conn
-    Packet  *packet.Packet
+    Packet  *packet.RawPacket
 }
 
 type GameServer struct {
-    addr        string              // listener address
+    addr        string          // listener address
     listener    net.Listener        
     msgCh       chan Message        
     stop        bool
     cmd         string
     ipconns     map[net.Addr]*Profile 
-    idconns     map[uuid.UUID]*Profile 
-    p_listeners map[packet.Type][]packet.PacketListener
+    players     [2]*Profile     // Players 1 & 2 profiles
+    p_listeners map[packet.PacketType][]packet.PacketListener
     logs        []string
+    State       *GameState
 }
 
 func NewServer(listenerAddr string) *GameServer {
@@ -49,9 +49,9 @@ func NewServer(listenerAddr string) *GameServer {
         stop: false,
         cmd: "",
         ipconns: make(map[net.Addr]*Profile),
-        idconns: make(map[uuid.UUID]*Profile),
-        p_listeners: make(map[packet.Type][]packet.PacketListener),
+        p_listeners: make(map[packet.PacketType][]packet.PacketListener),
         logs: make([]string, 0, 10),
+        State: NewGame(),
     }
 }
 
@@ -81,24 +81,6 @@ func (s *GameServer) Start() error {
             s.stop = true
             time.Sleep(5 * time.Second) // wait for all running threads to stop
             break InputLoop
-        case "bg red":
-            packet, err := packet.NewPacket(
-                packet.Type_SCBGColor,
-                packet.NewBgColor(255, 0, 0, 0))
-            if err != nil { return err }
-            s.SendPacket(packet)
-        case "bg green":
-            packet, err := packet.NewPacket(
-                packet.Type_SCBGColor,
-                packet.NewBgColor(0, 255, 0, 0))
-            if err != nil { return err }
-            s.SendPacket(packet)
-        case "bg blue":
-            packet, err := packet.NewPacket(
-                packet.Type_SCBGColor,
-                packet.NewBgColor(0, 0, 255, 0))
-            if err != nil { return err }
-            s.SendPacket(packet)
         case "debug":
             fmt.Println(*s)
         default: 
@@ -168,12 +150,7 @@ func (s *GameServer) read(c net.Conn) {
             continue
         }
         
-        p, err := packet.ReadPacket(buf[:n])
-        if err != nil {
-            s.Log("Failed to read packet:", err)
-            continue
-        }
-
+        p := packet.ReadPacket(buf[:n])
         s.msgCh <- Message {
             From: c,
             Packet: p,
@@ -181,7 +158,7 @@ func (s *GameServer) read(c net.Conn) {
     }
 }
 
-func (s *GameServer) SendPacket(packet *packet.Packet) error {
+func (s *GameServer) SendPacket(packet packet.Packet) error {
     s.Log("Sending packet to all connections")
     var err error
     for _, p := range s.ipconns {
@@ -193,7 +170,7 @@ func (s *GameServer) SendPacket(packet *packet.Packet) error {
     return err
 }
 
-func (s *GameServer) SendPacketTo(packet *packet.Packet, profiles ...*Profile) error {
+func (s *GameServer) SendPacketTo(packet packet.Packet, profiles ...*Profile) error {
     var err error
     for _, p := range profiles {
         err = p.SendPacket(packet)       
@@ -215,10 +192,10 @@ func (s *GameServer) handleMsgs() {
             context.Sender = sender
         }
 
-        buf := packet.InitPacketBuffer(p.Type)
-        err := proto.Unmarshal(p.Data, buf)
+        buf := p.Type.InitPacket()
+        err := buf.Deserialize(p.Data)
         if err != nil {
-            s.Log("Unmarshal error:", err)
+            s.Log("Read Packet error:", err)
             continue
         }
 
@@ -232,8 +209,8 @@ func (s *GameServer) handleMsgs() {
 
 
 func (s *GameServer) AddPacketListener(
-    packet_type packet.Type,
-    listener func(*packet.PacketContext, proto.Message),
+    packet_type packet.PacketType,
+    listener packet.PacketListener,
 ) {
     listeners := s.p_listeners[packet_type]
     if listeners == nil {
@@ -242,10 +219,6 @@ func (s *GameServer) AddPacketListener(
 
     listeners = append(listeners, listener)
     s.p_listeners[packet_type] = listeners
-}
-
-func (s *GameServer) RemovePlayerId(uuid uuid.UUID) {
-    delete(s.idconns, uuid)
 }
 
 func (s *GameServer) RemovePlayerIp(ip net.Addr) {
