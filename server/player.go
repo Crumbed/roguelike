@@ -25,12 +25,13 @@ func CSConnectListener(context *packet.PacketContext, data packet.Packet) {
     }
     
     server.SendPacketTo(&resp, profile)
-    if resp == false {
+    if resp.Is(false) {
+        server.Logf("Kicking %s because game is full", sender)
         return
     }
 
     server.ipconns[sender.RemoteAddr()] = profile
-    server.Logf("Player connected:\n%s\n", *profile)
+    server.Logf("Player connected:\n%s\n", profile)
 }
 
 

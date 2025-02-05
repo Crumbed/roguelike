@@ -9,8 +9,6 @@ import (
 	"net"
 	"os"
 	"time"
-
-	"google.golang.org/protobuf/proto"
 )
 
 
@@ -119,6 +117,7 @@ func (s *GameServer) Logf(format string, a ...any) {
 
 
 func (s *GameServer) listen() {
+    s.Log("Listening for connections...")
     for {
         if s.stop { return }
         conn, err := s.listener.Accept()

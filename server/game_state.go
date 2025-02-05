@@ -13,8 +13,8 @@ const (
     PH      float32 = 80
     P1X     float32 = 5
     P2X     float32 = 600 - PW - 5
-    CenterX float32 = 100
-    CenterY float32 = 100
+    CenterX float32 = 300
+    CenterY float32 = 200
 )
 
 type Player struct {

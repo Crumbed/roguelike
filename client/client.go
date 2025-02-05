@@ -12,27 +12,29 @@ import (
 
 
 
-
 func NewClient() *Client {
     return &Client {
         Conn: nil,
-        p_listeners: make(map[packet.PacketType][]packet.PacketListener),
+        listeners: make(map[packet.PacketType][]packet.PacketListener),
     }
 }
 
 type Client struct {
     Conn        net.Conn
-    p_listeners map[packet.PacketType][]packet.PacketListener
+    listeners   map[packet.PacketType][]packet.PacketListener
     MyPos       Vector2
 }
 
 func (c *Client) Start() {
-    go c.render()
+    InitWindow(server.Width, server.Height, "Game window")
+    SetTargetFPS(60)
 
-    for { // main loop
+    for !WindowShouldClose() { // main loop
+        c.render()   
         if c.Conn == nil { continue }
-        
     }
+
+    CloseWindow()
 }
 
 func (c *Client) Connect(ip *net.TCPAddr) error {
@@ -49,6 +51,9 @@ func (c *Client) Connect(ip *net.TCPAddr) error {
     c.Conn = conn
     go c.listen()       
     fmt.Println("Connected to:", c.Conn.RemoteAddr())
+
+    connect := &packet.Connect { Name: "Player 1" }
+    c.SendPacket(connect)
 
     return nil
 }
@@ -88,7 +93,7 @@ func (c *Client) handlePacket(context *packet.PacketContext, p *packet.RawPacket
         return
     }
 
-    listeners := c.p_listeners[p.Type]
+    listeners := c.listeners[p.Type]
     if listeners == nil { return }
     for _, listener := range listeners {
         listener(context, buf)
@@ -97,23 +102,31 @@ func (c *Client) handlePacket(context *packet.PacketContext, p *packet.RawPacket
 
 func (c *Client) SendPacket(packet packet.Packet) error {
     data, err := packet.Serialize()
-    if err != nil { return err }
+    if err != nil { 
+        fmt.Println("Serialize error:", err)
+        return err 
+    }
 
     _, err = c.Conn.Write(data)
     return err
 }
 
-func (c *Client) render() {
-    InitWindow(server.Width, server.Height, "Game window")
-    SetTargetFPS(60)
-    black := NewColor(0, 0, 0, 0)
-
-    for !WindowShouldClose() {
-        BeginDrawing()
-        ClearBackground(black)
-
-        EndDrawing()
+func (c *Client) AddPacketListener(
+    t           packet.PacketType,
+    listener    packet.PacketListener,
+) {
+    listeners := c.listeners[t]
+    if listeners == nil {
+        listeners = make([]packet.PacketListener, 0, 10)
     }
 
-    CloseWindow()
+    listeners = append(listeners, listener)
+    c.listeners[t] = listeners
+}
+
+func (c *Client) render() {
+    BeginDrawing()
+    ClearBackground(Black)
+
+    EndDrawing()
 }

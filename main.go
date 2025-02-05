@@ -2,18 +2,12 @@ package main
 
 import (
 	"fmt"
-	//"io"
-
-	//"io"
 	"log"
 	"main/client"
+	"main/packet"
 	"main/server"
-	//"main/packet"
 	"net"
 	"os"
-
-	//"google.golang.org/protobuf/proto"
-	//"google.golang.org/protobuf/proto"
 )
 
 type ProgramType int
@@ -50,15 +44,15 @@ func main() {
         return
     }
 
-    client := client.NewClient()   
-    client.Start()
+    c := client.NewClient()   
+    c.AddPacketListener(packet.SCJoinResponse, client.SCJoinResponseListener)
     // default server
     tcpIp, err := net.ResolveTCPAddr(Type, Host + ":" + Port)
     if err != nil {
         log.Fatal("Failed to resolve tcp addr: ", err)
     }
-    client.Connect(tcpIp)
-
+    c.Connect(tcpIp)
+    c.Start()
 }
 
 

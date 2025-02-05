@@ -28,6 +28,7 @@ func NewJoinResponse() *JoinResponse {
     var p JoinResponse
     return &p
 }
+func (p *JoinResponse) Is(other bool) bool { return bool(*p) == other }
 
 func (p *JoinResponse) GetType() PacketType { return SCJoinResponse }
 func (p *JoinResponse) Serialize() ([]byte, error) { 

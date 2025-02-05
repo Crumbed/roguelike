@@ -66,8 +66,11 @@ type Packet interface {
 
 
 func SerializeString(buf *bytes.Buffer, str string) error {
-    SerializeInt(buf, int32(len(str)))   
-    err := binary.Write(buf, binary.BigEndian, str)
+    err := SerializeInt(buf, int32(len(str)))   
+    data := []byte(str)
+    slices.Reverse(data)
+    _, err = buf.Write(data)
+    //err = binary.Write(buf, binary.BigEndian, str)
     return err
 }
 
