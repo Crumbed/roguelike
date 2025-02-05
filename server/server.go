@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"main/server/packet"
+	"main/packet"
 	"net"
 	"os"
 	"time"
@@ -24,16 +24,6 @@ func StartServer() {
     if err != nil { log.Fatal(err) }
 }
 
-type PacketSender interface {
-    RemoteAddr()    net.Addr
-}
-
-type PacketListener func(PacketContext, proto.Message)
-
-type PacketContext struct {
-    Sender  PacketSender
-    Server  *GameServer
-}
 
 type Message struct {
     From    net.Conn
@@ -48,7 +38,7 @@ type GameServer struct {
     cmd         string
     ipconns     map[net.Addr]*Profile 
     idconns     map[uuid.UUID]*Profile 
-    p_listeners map[packet.Type][]PacketListener
+    p_listeners map[packet.Type][]packet.PacketListener
     logs        []string
 }
 
@@ -60,7 +50,7 @@ func NewServer(listenerAddr string) *GameServer {
         cmd: "",
         ipconns: make(map[net.Addr]*Profile),
         idconns: make(map[uuid.UUID]*Profile),
-        p_listeners: make(map[packet.Type][]PacketListener),
+        p_listeners: make(map[packet.Type][]packet.PacketListener),
         logs: make([]string, 0, 10),
     }
 }
@@ -96,19 +86,19 @@ func (s *GameServer) Start() error {
                 packet.Type_SCBGColor,
                 packet.NewBgColor(255, 0, 0, 0))
             if err != nil { return err }
-            s.SendAllPacket(packet)
+            s.SendPacket(packet)
         case "bg green":
             packet, err := packet.NewPacket(
                 packet.Type_SCBGColor,
                 packet.NewBgColor(0, 255, 0, 0))
             if err != nil { return err }
-            s.SendAllPacket(packet)
+            s.SendPacket(packet)
         case "bg blue":
             packet, err := packet.NewPacket(
                 packet.Type_SCBGColor,
                 packet.NewBgColor(0, 0, 255, 0))
             if err != nil { return err }
-            s.SendAllPacket(packet)
+            s.SendPacket(packet)
         case "debug":
             fmt.Println(*s)
         default: 
@@ -116,6 +106,7 @@ func (s *GameServer) Start() error {
         }
     }
 
+    //fmt.Println("WHY TF IS THIS HAPPENING")
     close(s.msgCh)
     return nil
 }
@@ -190,7 +181,7 @@ func (s *GameServer) read(c net.Conn) {
     }
 }
 
-func (s *GameServer) SendAllPacket(packet *packet.Packet) error {
+func (s *GameServer) SendPacket(packet *packet.Packet) error {
     s.Log("Sending packet to all connections")
     var err error
     for _, p := range s.ipconns {
@@ -202,7 +193,7 @@ func (s *GameServer) SendAllPacket(packet *packet.Packet) error {
     return err
 }
 
-func (s *GameServer) SendPacket(packet *packet.Packet, profiles ...*Profile) error {
+func (s *GameServer) SendPacketTo(packet *packet.Packet, profiles ...*Profile) error {
     var err error
     for _, p := range profiles {
         err = p.SendPacket(packet)       
@@ -213,7 +204,7 @@ func (s *GameServer) SendPacket(packet *packet.Packet, profiles ...*Profile) err
 }
 
 func (s *GameServer) handleMsgs() {
-    context := PacketContext { Server: s }
+    context := packet.PacketContext { Handler: s }
     for msg := range s.msgCh {
         if s.stop { return }
         p := msg.Packet
@@ -242,11 +233,11 @@ func (s *GameServer) handleMsgs() {
 
 func (s *GameServer) AddPacketListener(
     packet_type packet.Type,
-    listener func(PacketContext, proto.Message),
+    listener func(packet.PacketContext, proto.Message),
 ) {
     listeners := s.p_listeners[packet_type]
     if listeners == nil {
-        listeners = make([]PacketListener, 0, 10)
+        listeners = make([]packet.PacketListener, 0, 10)
     }
 
     listeners = append(listeners, listener)

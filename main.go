@@ -2,18 +2,17 @@ package main
 
 import (
 	"fmt"
-	"image/color"
-	"io"
+	//"io"
 
 	//"io"
 	"log"
+	"main/client"
 	"main/server"
-	"main/server/packet"
+	//"main/packet"
 	"net"
 	"os"
 
-	. "github.com/gen2brain/raylib-go/raylib"
-	"google.golang.org/protobuf/proto"
+	//"google.golang.org/protobuf/proto"
 	//"google.golang.org/protobuf/proto"
 )
 
@@ -51,19 +50,16 @@ func main() {
         return
     }
 
+    client := client.NewClient()   
+    client.Start()
     // client   
-    tcpServer, err := net.ResolveTCPAddr(Type, Host + ":" + Port)
+    tcpIp, err := net.ResolveTCPAddr(Type, Host + ":" + Port)
     if err != nil {
         log.Fatal("Failed to resolve tcp addr: ", err)
     }
+    client.Connect(tcpIp)
 
-    conn, err := net.DialTCP(Type, nil, tcpServer)
-    fmt.Println("Establishing connection to:", Host)
-    if err != nil {
-        log.Fatal("Failed to dial server: ", err)
-    }
-    defer conn.Close()
-
+    /*
     profile := &packet.Profile { Name: "Kai" }
     data, err := packet.CreatePacket(packet.Type_CSProfile, profile)
     if err != nil {
@@ -76,30 +72,12 @@ func main() {
         log.Fatal("Failed to write data to connection: ", err)
     }
     fmt.Println("Success!")
-    client := &GameClient {
-        Conn: conn,
-        BgColor: SkyBlue,
-    }
-    go client.listen()
+    */
 
-    InitWindow(600, 400, "Game window")
-    SetTargetFPS(60)
-    for !WindowShouldClose() {
-        BeginDrawing()
-        ClearBackground(client.BgColor)
-
-        EndDrawing()
-    }
-
-    CloseWindow()
 }
 
 
-type GameClient struct {
-    Conn        net.Conn
-    BgColor     color.RGBA
-}
-
+/*
 func (c *GameClient) listen() {
     buf := make([]byte, 2048)
     for {
@@ -132,13 +110,9 @@ func (c *GameClient) listen() {
         }
     }
 }
+*/
 
 
-func (c *GameClient) changeColor(p_color *packet.BackgroundColor) {
-    rgb := p_color.Rgba
-    col := NewColor(rgb[0], rgb[1], rgb[2], rgb[3])
-    c.BgColor = col
-}
 
 
 

@@ -2,7 +2,7 @@ package server
 
 import (
 	"fmt"
-	"main/server/packet"
+	"main/packet"
 	"net"
 
 	"github.com/google/uuid"
@@ -10,13 +10,14 @@ import (
 )
 
 
-func CSProfileListener(context PacketContext, data proto.Message) {
+func CSProfileListener(context packet.PacketContext, data proto.Message) {
     sender := context.Sender.(net.Conn)
+    server := context.Handler.(*GameServer)
     profile := NewProfile(context.Sender.(net.Conn), data.(*packet.Profile))
-    context.Server.ipconns[sender.RemoteAddr()] = profile
-    context.Server.idconns[profile.Uuid] = profile
+    server.ipconns[sender.RemoteAddr()] = profile
+    server.idconns[profile.Uuid] = profile
 
-    context.Server.Logf("Player connected:\n%s\n", *profile)
+    server.Logf("Player connected:\n%s\n", *profile)
 }
 
 
