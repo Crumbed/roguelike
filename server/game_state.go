@@ -9,16 +9,16 @@ import (
 const (
     Width   int32   = 600
     Height  int32   = 400
-    PW      float32 = 20
-    PH      float32 = 80
-    P1X     float32 = 5
-    P2X     float32 = 600 - PW - 5
+    PW      int32   = 20
+    PH      int32   = 80
+    P1X     int32   = 5
+    P2X     int32   = 600 - PW - 5
     CenterX float32 = 300
     CenterY float32 = 200
 )
 
 type Player struct {
-    Pos     float32
+    Pos     int32
     Score   uint8
 }
 

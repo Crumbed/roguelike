@@ -8,6 +8,7 @@ import (
 	"main/packet"
 	"net"
 	"os"
+	"slices"
 	"time"
 )
 
@@ -49,6 +50,7 @@ func NewServer(listenerAddr string) *GameServer {
         ipconns: make(map[net.Addr]*Profile),
         p_listeners: make(map[packet.PacketType][]packet.PacketListener),
         logs: make([]string, 0, 10),
+        players: [2]*Profile { nil, nil },
         State: NewGame(),
     }
 }
@@ -161,6 +163,18 @@ func (s *GameServer) SendPacket(packet packet.Packet) error {
     s.Log("Sending packet to all connections")
     var err error
     for _, p := range s.ipconns {
+        s.Log("Sending to", p.Conn.RemoteAddr())
+        err = p.SendPacket(packet)
+        if err != nil { break }
+    }
+
+    return err
+}
+
+func (s *GameServer) SendPacketEx(packet packet.Packet, exclude ...*Profile) error {
+    var err error
+    for _, p := range s.ipconns {
+        if slices.Contains(exclude, p) { continue }
         s.Log("Sending to", p.Conn.RemoteAddr())
         err = p.SendPacket(packet)
         if err != nil { break }

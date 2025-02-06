@@ -14,24 +14,35 @@ func CSConnectListener(context *packet.PacketContext, data packet.Packet) {
     server := context.Handler.(*GameServer)
     p_conn := data.(*packet.Connect)
 
+    start := false
     profile := NewProfile(context.Sender.(net.Conn), p_conn)
-    resp := packet.JoinResponse(true)
+    resp := &packet.JoinResponse { Response: true }
     if server.players[0] != nil && server.players[1] != nil {
-        resp = !resp
+        resp.Response = false 
     } else if server.players[0] == nil {
         server.players[0] = profile
+        resp.PlayerN = 0
+        if server.players[1] != nil { start = true }
     } else {
         server.players[1] = profile
+        resp.PlayerN = 1
+        if server.players[0] != nil { start = true }
     }
     
-    server.SendPacketTo(&resp, profile)
-    if resp.Is(false) {
+    server.SendPacketTo(resp, profile)
+    if !resp.IsOk() {
         server.Logf("Kicking %s because game is full", sender)
         return
     }
 
     server.ipconns[sender.RemoteAddr()] = profile
     server.Logf("Player connected:\n%s\n", profile)
+    if start {
+        err := server.SendPacket(&packet.GameStart{})
+        if err != nil {
+            fmt.Println("Failed to start game:", err)
+        }
+    }
 }
 
 

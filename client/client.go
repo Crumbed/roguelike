@@ -7,34 +7,57 @@ import (
 	"main/server"
 	"net"
 
-	. "github.com/gen2brain/raylib-go/raylib"
+	"github.com/gen2brain/raylib-go/raylib"
 )
 
+const (
+    Width   int32   = 600
+    Height  int32   = 400
+    PW      int32   = 10
+    PH      int32   = 60
+    P1X     int32   = 5
+    P2X     int32   = 600 - PW - 5
+    CenterX int32   = 300
+    CenterY int32   = 200
+    BallS   float32 = 10 // hehe balls
+)
+
+type PlayerN uint8
+const (
+    Player1 PlayerN = 0
+    Player2 PlayerN = 1
+)
 
 
 func NewClient() *Client {
     return &Client {
         Conn: nil,
         listeners: make(map[packet.PacketType][]packet.PacketListener),
+        Players: [2]server.Player{},
+        Started: false,
+        BallPos: rl.NewVector2(float32(CenterX) - 5, float32(CenterY) - 5),
     }
 }
 
 type Client struct {
     Conn        net.Conn
     listeners   map[packet.PacketType][]packet.PacketListener
-    MyPos       Vector2
+    Iam         PlayerN
+    Players     [2]server.Player
+    Started     bool
+    BallPos     rl.Vector2      
 }
 
 func (c *Client) Start() {
-    InitWindow(server.Width, server.Height, "Game window")
-    SetTargetFPS(60)
+    rl.InitWindow(server.Width, server.Height, "Game window")
+    rl.SetTargetFPS(60)
 
-    for !WindowShouldClose() { // main loop
-        c.render()   
+    for !rl.WindowShouldClose() { // main loop
         if c.Conn == nil { continue }
+        c.render()   
     }
 
-    CloseWindow()
+    rl.CloseWindow()
 }
 
 func (c *Client) Connect(ip *net.TCPAddr) error {
@@ -125,8 +148,35 @@ func (c *Client) AddPacketListener(
 }
 
 func (c *Client) render() {
-    BeginDrawing()
-    ClearBackground(Black)
+    rl.BeginDrawing()
+    rl.ClearBackground(rl.Black)
+    rl.DrawRectangle(
+        CenterX - 1, 0,
+        2, Height,
+        rl.Gray)
 
-    EndDrawing()
+    // player 1 paddle
+    rl.DrawRectangle(
+        P1X, c.Players[0].Pos,
+        PW, PH,
+        rl.White)
+
+    if !c.Started { 
+        rl.EndDrawing()
+        return
+    }
+
+    // player 2 paddle
+    rl.DrawRectangle(
+        P2X, c.Players[1].Pos,
+        PW, PH,
+        rl.White)
+
+    // ball
+    rl.DrawRectangleV(
+        c.BallPos,
+        rl.NewVector2(BallS, BallS),
+        rl.White)
+
+    rl.EndDrawing()
 }

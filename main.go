@@ -46,6 +46,7 @@ func main() {
 
     c := client.NewClient()   
     c.AddPacketListener(packet.SCJoinResponse, client.SCJoinResponseListener)
+    c.AddPacketListener(packet.SCGameStart, client.SCGameStartListener)
     // default server
     tcpIp, err := net.ResolveTCPAddr(Type, Host + ":" + Port)
     if err != nil {

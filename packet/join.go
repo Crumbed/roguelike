@@ -3,7 +3,7 @@ package packet
 import "bytes"
 
 
-
+// >5 | PacketType 1, NameLen 4, Name ~
 type Connect struct {
     Name    string
 }
@@ -23,27 +23,52 @@ func (p *Connect) Deserialize(data []byte) error {
 }
 
 
-type JoinResponse bool
-func NewJoinResponse() *JoinResponse {
-    var p JoinResponse
-    return &p
+// 3 | PacketType 1, Response 1, PlayerN 1
+type JoinResponse struct {
+    Response    bool
+    PlayerN     uint8
 }
-func (p *JoinResponse) Is(other bool) bool { return bool(*p) == other }
+func (p *JoinResponse) IsOk() bool { return p.Response == true }
 
 func (p *JoinResponse) GetType() PacketType { return SCJoinResponse }
 func (p *JoinResponse) Serialize() ([]byte, error) { 
-    buf := bytes.NewBuffer(make([]byte, 0, 2))
+    buf := bytes.NewBuffer(make([]byte, 0, 3))
     _ = buf.WriteByte(byte(SCJoinResponse))
-    err := SerializeBool(buf, bool(*p))
+    err := SerializeBool(buf, p.Response)
+    err = buf.WriteByte(p.PlayerN)
     return buf.Bytes(), err
 }
 func (p *JoinResponse) Deserialize(data []byte) error {
     buf := bytes.NewBuffer(data)
-    b, err := DeserializeBool(buf)
-    *p = JoinResponse(b)
+    r, err := DeserializeBool(buf)
+    w, err := buf.ReadByte()
+
+    p.Response = r
+    p.PlayerN = w
     return err
 }
 
+// 2 | PacketType 1, PlayerN 1
+type AddPlayer struct {
+    PlayerN uint8
+}
+
+/*
+func (p *AddPlayer) GetType() PacketType { return SCAddPlayer }
+func (p *AddPlayer) Serialize() ([]byte, error) {
+    buf := bytes.NewBuffer(make([]byte, 0, 2))
+    _ = buf.WriteByte(byte(SCAddPlayer))
+    err := buf.WriteByte(p.PlayerN)
+    return buf.Bytes(), err
+}
+func (p *AddPlayer) Deserialize(data []byte) error {
+    buf := bytes.NewBuffer(data)
+    n, err := buf.ReadByte()
+
+    p.PlayerN = n
+    return err
+}
+*/
 
 
 

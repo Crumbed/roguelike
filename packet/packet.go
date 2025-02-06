@@ -30,13 +30,17 @@ type PacketType uint8
 const (
     CSConnect PacketType = iota // request game join
     SCJoinResponse              // game join response
+    SCGameStart                 // tells clients to start the game
+    //SCAddPlayer                 // tells other client to add another player
 )
 
 func (t *PacketType) InitPacket() Packet {
     var data Packet
     switch *t {
     case CSConnect: data = &Connect{}
-    case SCJoinResponse: data = NewJoinResponse()
+    case SCJoinResponse: data = &JoinResponse{}
+    case SCGameStart: data = &GameStart{}
+    //case SCAddPlayer: data = &AddPlayer{}
     default: 
         fmt.Println("Invalid PacketType:", *t)
         data = nil
