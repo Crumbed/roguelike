@@ -2,6 +2,7 @@ package server
 
 import (
 	"bufio"
+	"container/list"
 	"fmt"
 	"io"
 	"log"
@@ -9,11 +10,9 @@ import (
 	"net"
 	"os"
 	"slices"
-	"time"
 )
 
 
-const Update time.Duration = time.Millisecond * 50
 
 func StartServer() {
     fmt.Println("Running server")
@@ -21,6 +20,10 @@ func StartServer() {
     server.AddPacketListener(packet.CSConnect, CSConnectListener)
     server.AddPacketListener(packet.BWPaddleMove, SSPaddleMoveListener)
     server.AddPacketListener(packet.BWGameStart, SSGameStartListener)
+
+    server.AddUpdateFn(&UpdateBall)
+    server.AddUpdateFn(&ConfirmReady)
+    server.AddUpdateFn(&SendBallMove)
     err := server.Start()
     if err != nil { log.Fatal(err) }
 }
@@ -39,9 +42,11 @@ type GameServer struct {
     cmd         string
     ipconns     map[net.Addr]*Profile 
     Players     [2]*Profile     // Players 1 & 2 profiles
-    p_listeners map[packet.PacketType][]packet.PacketListener
     logs        []string
     State       *GameState
+    p_listeners map[packet.PacketType][]packet.PacketListener
+    updateFns   *list.List
+    DeltaTime   float32         // DeltaTime seconds
 }
 
 func NewServer(listenerAddr string) *GameServer {
@@ -52,6 +57,7 @@ func NewServer(listenerAddr string) *GameServer {
         cmd: "",
         ipconns: make(map[net.Addr]*Profile),
         p_listeners: make(map[packet.PacketType][]packet.PacketListener),
+        updateFns: list.New(),
         logs: make([]string, 0, 10),
         Players: [2]*Profile { nil, nil },
         State: NewGame(),
@@ -87,21 +93,6 @@ func (s *GameServer) Start() error {
     return nil
 }
 
-func (s *GameServer) UpdateClients() {
-
-    for {
-        if !s.Players[0].Started { 
-            fmt.Println("Resending start packet")
-            s.SendPacketTo(&packet.GameStart{}, s.Players[0]) 
-        }
-        if !s.Players[1].Started {
-            fmt.Println("Resending start packet")
-            s.SendPacketTo(&packet.GameStart{}, s.Players[1]) 
-        }
-
-        time.Sleep(Update)
-    }
-}
 
 func (s *GameServer) startReading() {
     stdin := bufio.NewReader(os.Stdin)
@@ -170,10 +161,10 @@ func (s *GameServer) read(c net.Conn) {
 }
 
 func (s *GameServer) SendPacket(packet packet.Packet) error {
-    s.Log("Sending packet to all connections")
+    //s.Log("Sending packet to all connections")
     var err error
     for _, p := range s.ipconns {
-        s.Log("Sending to", p.Conn.RemoteAddr())
+        //s.Log("Sending to", p.Conn.RemoteAddr())
         err = p.SendPacket(packet)
         if err != nil { break }
     }
@@ -185,7 +176,7 @@ func (s *GameServer) SendPacketEx(packet packet.Packet, exclude ...*Profile) err
     var err error
     for _, p := range s.ipconns {
         if slices.Contains(exclude, p) { continue }
-        s.Log("Sending to", p.Conn.RemoteAddr())
+        //s.Log("Sending to", p.Conn.RemoteAddr())
         err = p.SendPacket(packet)
         if err != nil { break }
     }
@@ -230,6 +221,9 @@ func (s *GameServer) handleMsgs() {
     }
 }
 
+func (s *GameServer) AddUpdateFn(up *UpdateFn) {
+    s.updateFns.PushBack(up)
+}
 
 func (s *GameServer) AddPacketListener(
     packet_type packet.PacketType,

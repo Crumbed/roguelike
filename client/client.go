@@ -36,6 +36,29 @@ type Player struct {
     Pos     int32
     Score   uint8
 }
+func (p *Player) render(n PlayerN) {
+    var x int32
+    if n == Player1 { 
+        x = P1X 
+    } else if n == Player2 {
+        x = P2X 
+    }
+
+    rl.DrawRectangle(
+        x, p.Pos,
+        PW, PH,
+        rl.White)
+}
+
+var BallRect rl.Vector2 = rl.NewVector2(BallS, BallS)
+type Ball struct {
+    NewPos  rl.Vector2
+    Pos     rl.Vector2
+}
+func (b *Ball) render() {
+    rl.DrawRectangleV(b.NewPos, BallRect, rl.White)
+}
+
 
 func NewClient() *Client {
     return &Client {
@@ -43,7 +66,10 @@ func NewClient() *Client {
         listeners: make(map[packet.PacketType][]packet.PacketListener),
         Players: [2]Player{},
         Started: false,
-        BallPos: rl.NewVector2(float32(CenterX) - 5, float32(CenterY) - 5),
+        Ball: Ball {
+            NewPos: rl.NewVector2(float32(CenterX) - 5, float32(CenterY) - 5),
+            Pos: rl.NewVector2(float32(CenterX) - 5, float32(CenterY) - 5),
+        },
     }
 }
 
@@ -53,7 +79,7 @@ type Client struct {
     Iam         PlayerN
     Players     [2]Player
     Started     bool
-    BallPos     rl.Vector2      
+    Ball        Ball
 }
 
 func (c *Client) Start() {
@@ -66,6 +92,7 @@ func (c *Client) Start() {
     } else { other = &c.Players[0] }
 
     var p2t int32 = 0
+    //bd := rl.NewVector2(0, 0)
     firstStart := true
     for !rl.WindowShouldClose() { // main loop
         if c.Conn == nil { continue }
@@ -79,10 +106,28 @@ func (c *Client) Start() {
             if p2t == 0 && other.Pos != other.NewPos {
                 p2t = other.NewPos - other.Pos    
             }
+            /*
+            if (bd.X == 0 && bd.Y == 0) && c.Ball.Pos != c.Ball.NewPos {
+                bd.X = c.Ball.NewPos.X - c.Ball.Pos.X
+                bd.Y = c.Ball.NewPos.Y - c.Ball.Pos.Y
+            }
+            */
+
             if other.Pos == other.NewPos { p2t = 0 }
             if p2t != 0 {
                 other.Pos += p2t / 2
             }
+
+            /*
+            if c.Ball.Pos == c.Ball.NewPos { 
+                bd.X = 0
+                bd.Y = 0
+            }
+            if bd.X != 0 && bd.Y != 0 {
+                c.Ball.Pos.X += bd.X / 2
+                c.Ball.Pos.Y += bd.Y / 2
+            }
+            */
         }
         c.render()   
     }
@@ -224,10 +269,7 @@ func (c *Client) render() {
         rl.Gray)
 
     // player 1 paddle
-    rl.DrawRectangle(
-        P1X, c.Players[0].Pos,
-        PW, PH,
-        rl.White)
+    c.Players[0].render(0)
 
     if !c.Started { 
         rl.EndDrawing()
@@ -235,16 +277,10 @@ func (c *Client) render() {
     }
 
     // player 2 paddle
-    rl.DrawRectangle(
-        P2X, c.Players[1].Pos,
-        PW, PH,
-        rl.White)
+    c.Players[1].render(1)
 
     // ball
-    rl.DrawRectangleV(
-        c.BallPos,
-        rl.NewVector2(BallS, BallS),
-        rl.White)
+    c.Ball.render()
 
     rl.EndDrawing()
 }

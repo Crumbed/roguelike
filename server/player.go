@@ -52,9 +52,13 @@ func SSPaddleMoveListener(context *packet.PacketContext, data packet.Packet) {
     server := context.Handler.(*GameServer)
     move := data.(*packet.PaddleMove)
 
-    server.State.P1.Pos = move.Pos
-    otherPlayer := 0
-    if move.PlayerN == 0 { otherPlayer = 1 }
+    var otherPlayer uint8
+    if move.PlayerN == 0 {
+        server.State.P1.Pos = move.Pos
+        otherPlayer = 1
+    } else {
+        server.State.P2.Pos = move.Pos
+    }
 
     server.SendPacketTo(data, server.Players[otherPlayer])
 }

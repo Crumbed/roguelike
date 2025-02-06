@@ -36,3 +36,28 @@ func (p *PaddleMove) Deserialize(data []byte) error {
     p.Pos = pos
     return err
 }
+
+
+// 9 | PacketType 1, X 4, Y 4
+type BallMove struct {
+    X   float32
+    Y   float32
+}
+func (p *BallMove) GetType() PacketType { return SCBallMove }
+func (p *BallMove) Serialize() ([]byte, error) {
+    buf := bytes.NewBuffer(make([]byte, 0, 9))
+    err := buf.WriteByte(byte(SCBallMove))
+    err = SerializeFloat(buf, p.X)
+    err = SerializeFloat(buf, p.Y)
+
+    return buf.Bytes(), err
+}
+func (p *BallMove) Deserialize(data []byte) error {
+    buf := bytes.NewBuffer(data)
+    x, err := DeserializeFloat(buf)
+    y, err := DeserializeFloat(buf)
+
+    p.X = x
+    p.Y = y
+    return err
+}

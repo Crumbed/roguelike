@@ -32,6 +32,7 @@ const (
     SCJoinResponse              // game join response
     BWGameStart                 // tells client to start the game, then client parrots the packet to confirm
     BWPaddleMove                // tells both server & client about paddle movement
+    SCBallMove                  // tells client updated ball position
     //SCAddPlayer                 // tells other client to add another player
 )
 
@@ -42,6 +43,7 @@ func (t *PacketType) InitPacket() Packet {
     case SCJoinResponse: data = &JoinResponse{}
     case BWGameStart: data = &GameStart{}
     case BWPaddleMove: data = &PaddleMove{}
+    case SCBallMove: data = &BallMove{}
     //case SCAddPlayer: data = &AddPlayer{}
     default: 
         fmt.Println("Invalid PacketType:", *t)
