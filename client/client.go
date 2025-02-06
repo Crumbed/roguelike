@@ -21,7 +21,7 @@ const (
     CenterX int32           = 300
     CenterY int32           = 200
     BallS   float32         = 10 // hehe balls
-    Update  time.Duration   = time.Millisecond * 100
+    Update  time.Duration   = time.Millisecond * 50
 )
 
 type PlayerN uint8
@@ -31,11 +31,17 @@ const (
 )
 
 
+type Player struct {
+    NewPos  int32
+    Pos     int32
+    Score   uint8
+}
+
 func NewClient() *Client {
     return &Client {
         Conn: nil,
         listeners: make(map[packet.PacketType][]packet.PacketListener),
-        Players: [2]server.Player{},
+        Players: [2]Player{},
         Started: false,
         BallPos: rl.NewVector2(float32(CenterX) - 5, float32(CenterY) - 5),
     }
@@ -45,7 +51,7 @@ type Client struct {
     Conn        net.Conn
     listeners   map[packet.PacketType][]packet.PacketListener
     Iam         PlayerN
-    Players     [2]server.Player
+    Players     [2]Player
     Started     bool
     BallPos     rl.Vector2      
 }
@@ -53,7 +59,13 @@ type Client struct {
 func (c *Client) Start() {
     rl.InitWindow(server.Width, server.Height, "Game window")
     rl.SetTargetFPS(60)
+    me := &c.Players[c.Iam]
+    var other *Player
+    if c.Iam == 0 { 
+        other = &c.Players[1] 
+    } else { other = &c.Players[0] }
 
+    var p2t int32 = 0
     firstStart := true
     for !rl.WindowShouldClose() { // main loop
         if c.Conn == nil { continue }
@@ -62,7 +74,16 @@ func (c *Client) Start() {
             go c.UpdateServer()
         }
 
-        if c.Started { keyInput(&c.Players[c.Iam]) }
+        if c.Started { 
+            keyInput(me) 
+            if p2t == 0 && other.Pos != other.NewPos {
+                p2t = other.NewPos - other.Pos    
+            }
+            if other.Pos == other.NewPos { p2t = 0 }
+            if p2t != 0 {
+                other.Pos += p2t / 2
+            }
+        }
         c.render()   
     }
 
@@ -177,7 +198,7 @@ func (c *Client) AddPacketListener(
 }
 
 
-func keyInput(p *server.Player) {
+func keyInput(p *Player) {
     if rl.IsKeyDown(rl.KeyJ) || rl.IsKeyDown(rl.KeyDown) {
         p.Pos += int32(500 * rl.GetFrameTime())
         if p.Pos + PH >= Height {
