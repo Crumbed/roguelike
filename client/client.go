@@ -54,6 +54,7 @@ func (c *Client) Start() {
 
     for !rl.WindowShouldClose() { // main loop
         if c.Conn == nil { continue }
+        keyInput(&c.Players[c.Iam])
         c.render()   
     }
 
@@ -145,6 +146,24 @@ func (c *Client) AddPacketListener(
 
     listeners = append(listeners, listener)
     c.listeners[t] = listeners
+}
+
+
+func keyInput(p *server.Player) {
+    if rl.IsKeyDown(rl.KeyJ) || rl.IsKeyDown(rl.KeyDown) {
+        p.Pos += int32(500 * rl.GetFrameTime())
+        if p.Pos + PH >= Height {
+            p.Pos = Height - PH
+            return
+        }
+    }
+    if rl.IsKeyDown(rl.KeyK) || rl.IsKeyDown(rl.KeyUp) {
+        p.Pos += int32(-500 * rl.GetFrameTime())
+        if p.Pos <= 0 {
+            p.Pos = 0
+            return
+        }
+    }
 }
 
 func (c *Client) render() {
