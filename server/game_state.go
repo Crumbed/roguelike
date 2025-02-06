@@ -31,6 +31,7 @@ type GameState struct {
     P1      Player
     P2      Player
     Ball    Ball
+    Started bool
 }
 
 func NewGame() *GameState {
@@ -39,6 +40,7 @@ func NewGame() *GameState {
             Pos: NewVector2(CenterX, CenterY),
             Vel: NewVector2(-10, -10),
         },
+        Started: false,
     }
 }
 

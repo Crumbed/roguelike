@@ -20,9 +20,10 @@ func SCJoinResponseListener(context *packet.PacketContext, p packet.Packet) {
     client.Conn.Close()
 }
 
-func SCGameStartListener(context *packet.PacketContext, _ packet.Packet) {
+func SCGameStartListener(context *packet.PacketContext, p packet.Packet) {
     client := context.Handler.(*Client)
     client.Started = true
+    client.SendPacket(p)
     fmt.Println("Starting game...")
 }
 

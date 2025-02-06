@@ -13,12 +13,14 @@ import (
 )
 
 
+const Update time.Duration = time.Millisecond * 50
 
 func StartServer() {
     fmt.Println("Running server")
     server := NewServer(":3000")
     server.AddPacketListener(packet.CSConnect, CSConnectListener)
     server.AddPacketListener(packet.BWPaddleMove, SSPaddleMoveListener)
+    server.AddPacketListener(packet.BWGameStart, SSGameStartListener)
     err := server.Start()
     if err != nil { log.Fatal(err) }
 }
@@ -72,26 +74,33 @@ func (s *GameServer) Start() error {
     go s.listen()
     go s.handleMsgs()
 
-    InputLoop: for {
-        if s.cmd == "" { continue }
-        cmd := s.readCommand()
-
-        switch cmd {
-        case "stop":
-            fmt.Println("Stopping server...")
-            s.stop = true
-            time.Sleep(5 * time.Second) // wait for all running threads to stop
-            break InputLoop
-        case "debug":
-            fmt.Println(*s)
-        default: 
-            fmt.Println("Invalid command:", cmd)
+    firstStart := true
+    for {
+        if firstStart && s.State.Started {
+            firstStart = false
+            go s.UpdateClients()
         }
     }
 
     //fmt.Println("WHY TF IS THIS HAPPENING")
     close(s.msgCh)
     return nil
+}
+
+func (s *GameServer) UpdateClients() {
+
+    for {
+        if !s.Players[0].Started { 
+            fmt.Println("Resending start packet")
+            s.SendPacketTo(&packet.GameStart{}, s.Players[0]) 
+        }
+        if !s.Players[1].Started {
+            fmt.Println("Resending start packet")
+            s.SendPacketTo(&packet.GameStart{}, s.Players[1]) 
+        }
+
+        time.Sleep(Update)
+    }
 }
 
 func (s *GameServer) startReading() {
