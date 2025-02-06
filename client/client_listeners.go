@@ -26,4 +26,11 @@ func SCGameStartListener(context *packet.PacketContext, _ packet.Packet) {
     fmt.Println("Starting game...")
 }
 
+func CCPaddleMoveListener(context *packet.PacketContext, data packet.Packet) {
+    client := context.Handler.(*Client)
+    update := data.(*packet.PaddleMove)
+
+    client.Players[update.PlayerN].Pos = update.Pos
+}
+
 

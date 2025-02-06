@@ -6,20 +6,22 @@ import (
 	"main/packet"
 	"main/server"
 	"net"
+	"time"
 
 	"github.com/gen2brain/raylib-go/raylib"
 )
 
 const (
-    Width   int32   = 600
-    Height  int32   = 400
-    PW      int32   = 10
-    PH      int32   = 60
-    P1X     int32   = 5
-    P2X     int32   = 600 - PW - 5
-    CenterX int32   = 300
-    CenterY int32   = 200
-    BallS   float32 = 10 // hehe balls
+    Width   int32           = 600
+    Height  int32           = 400
+    PW      int32           = 10
+    PH      int32           = 60
+    P1X     int32           = 5
+    P2X     int32           = 600 - PW - 5
+    CenterX int32           = 300
+    CenterY int32           = 200
+    BallS   float32         = 10 // hehe balls
+    Update  time.Duration   = time.Millisecond * 100
 )
 
 type PlayerN uint8
@@ -52,13 +54,39 @@ func (c *Client) Start() {
     rl.InitWindow(server.Width, server.Height, "Game window")
     rl.SetTargetFPS(60)
 
+    firstStart := true
     for !rl.WindowShouldClose() { // main loop
         if c.Conn == nil { continue }
-        keyInput(&c.Players[c.Iam])
+        if c.Started && firstStart {
+            firstStart = false
+            go c.UpdateServer()
+        }
+
+        if c.Started { keyInput(&c.Players[c.Iam]) }
         c.render()   
     }
 
     rl.CloseWindow()
+}
+
+func (c *Client) UpdateServer() {
+    lastPos := int32(0)
+    p := &c.Players[c.Iam]
+
+    for {
+        if lastPos == p.Pos { continue }
+        lastPos = p.Pos
+        packet := &packet.PaddleMove {
+            PlayerN: uint8(c.Iam),
+            Pos: p.Pos,
+        }
+        
+        err := c.SendPacket(packet)
+        if err != nil {
+            fmt.Println("Failed to send movement update packet:", err)
+        }
+        time.Sleep(Update)
+    }
 }
 
 func (c *Client) Connect(ip *net.TCPAddr) error {

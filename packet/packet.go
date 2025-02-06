@@ -31,6 +31,7 @@ const (
     CSConnect PacketType = iota // request game join
     SCJoinResponse              // game join response
     SCGameStart                 // tells clients to start the game
+    BWPaddleMove                // tells both server & client about paddle movement
     //SCAddPlayer                 // tells other client to add another player
 )
 
@@ -40,6 +41,7 @@ func (t *PacketType) InitPacket() Packet {
     case CSConnect: data = &Connect{}
     case SCJoinResponse: data = &JoinResponse{}
     case SCGameStart: data = &GameStart{}
+    case BWPaddleMove: data = &PaddleMove{}
     //case SCAddPlayer: data = &AddPlayer{}
     default: 
         fmt.Println("Invalid PacketType:", *t)

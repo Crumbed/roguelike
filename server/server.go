@@ -18,6 +18,7 @@ func StartServer() {
     fmt.Println("Running server")
     server := NewServer(":3000")
     server.AddPacketListener(packet.CSConnect, CSConnectListener)
+    server.AddPacketListener(packet.BWPaddleMove, SSPaddleMoveListener)
     err := server.Start()
     if err != nil { log.Fatal(err) }
 }
@@ -35,7 +36,7 @@ type GameServer struct {
     stop        bool
     cmd         string
     ipconns     map[net.Addr]*Profile 
-    players     [2]*Profile     // Players 1 & 2 profiles
+    Players     [2]*Profile     // Players 1 & 2 profiles
     p_listeners map[packet.PacketType][]packet.PacketListener
     logs        []string
     State       *GameState
@@ -50,7 +51,7 @@ func NewServer(listenerAddr string) *GameServer {
         ipconns: make(map[net.Addr]*Profile),
         p_listeners: make(map[packet.PacketType][]packet.PacketListener),
         logs: make([]string, 0, 10),
-        players: [2]*Profile { nil, nil },
+        Players: [2]*Profile { nil, nil },
         State: NewGame(),
     }
 }

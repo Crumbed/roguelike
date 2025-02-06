@@ -17,16 +17,18 @@ func CSConnectListener(context *packet.PacketContext, data packet.Packet) {
     start := false
     profile := NewProfile(context.Sender.(net.Conn), p_conn)
     resp := &packet.JoinResponse { Response: true }
-    if server.players[0] != nil && server.players[1] != nil {
+    if server.Players[0] != nil && server.Players[1] != nil {
         resp.Response = false 
-    } else if server.players[0] == nil {
-        server.players[0] = profile
+    } else if server.Players[0] == nil {
+        server.Players[0] = profile
         resp.PlayerN = 0
-        if server.players[1] != nil { start = true }
+        fmt.Println("Player 1 joined")
+        if server.Players[1] != nil { start = true }
     } else {
-        server.players[1] = profile
+        server.Players[1] = profile
         resp.PlayerN = 1
-        if server.players[0] != nil { start = true }
+        fmt.Println("Player 2 joined")
+        if server.Players[0] != nil { start = true }
     }
     
     server.SendPacketTo(resp, profile)
@@ -43,6 +45,17 @@ func CSConnectListener(context *packet.PacketContext, data packet.Packet) {
             fmt.Println("Failed to start game:", err)
         }
     }
+}
+
+func SSPaddleMoveListener(context *packet.PacketContext, data packet.Packet) {
+    server := context.Handler.(*GameServer)
+    move := data.(*packet.PaddleMove)
+
+    server.State.P1.Pos = move.Pos
+    otherPlayer := 0
+    if move.PlayerN == 0 { otherPlayer = 1 }
+
+    server.SendPacketTo(data, server.Players[otherPlayer])
 }
 
 
