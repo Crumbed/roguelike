@@ -46,7 +46,7 @@ func (p *Player) render(n PlayerN) {
     }
 
     rl.DrawRectangle(
-        x, p.NewPos,
+        x, p.Pos,
         PW, PH,
         rl.White)
 }

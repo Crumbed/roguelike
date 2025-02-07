@@ -31,7 +31,8 @@ func CCPaddleMoveListener(context *packet.PacketContext, data packet.Packet) {
     client := context.Handler.(*Client)
     update := data.(*packet.PaddleMove)
 
-    client.Players[update.PlayerN].NewPos = update.Pos
+    //client.Players[update.PlayerN].NewPos = update.Pos
+    client.Players[update.PlayerN].Pos = update.Pos
 }
 
 func SCBallMoveListener(context *packet.PacketContext, data packet.Packet) {
