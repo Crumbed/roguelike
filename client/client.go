@@ -116,7 +116,10 @@ func (c *Client) Start() {
             }
             */
 
-            if other.Pos == other.NewPos { p2t = 0 }
+            if other.Pos >= other.NewPos {
+                other.Pos = other.NewPos
+                p2t = 0 
+            }
             if p2t != 0 {
                 other.Pos += p2t / 2
             }
