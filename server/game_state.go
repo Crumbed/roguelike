@@ -2,11 +2,11 @@ package server
 
 import (
 	//"fmt"
+	"fmt"
 	"main/packet"
 	"math"
 
 	. "github.com/gen2brain/raylib-go/raylib"
-	"golang.org/x/tools/go/analysis/passes/nilfunc"
 )
 
 
@@ -17,85 +17,34 @@ const (
     PH      int32   = 80
     P1X     int32   = 5
     P2X     int32   = 600 - PW - 5
-    P1C     float32 = float32(P1X + PW)
-    P2C     float32 = float32(P2X)
-    CenterX float32 = 300
-    CenterY float32 = 200
-    BallS   float32 = 10
-    InitVel float32 = 200
+    P1C     float64 = float64(P1X + PW)
+    P2C     float64 = float64(P2X)
+    CenterX float64 = 300
+    CenterY float64 = 200
+    BallS   float64 = 10
+    InitVel float64 = 200
 )
 
-type Vec2 struct {
-    X   float32
-    Y   float32
-}
-func NewVec2(x, y float32) Vec2 { return Vec2 { X: x, Y: y } }
-
-func (v *Vec2) Rotate(angle float32) {
-	cosres := float32(math.Cos(float64(angle)))
-	sinres := float32(math.Sin(float64(angle)))
-
-	v.X = v.X*cosres - v.Y*sinres
-	v.Y = v.X*sinres + v.Y*cosres
-}
-func (v *Vec2) InvertX() {
-    v.X *= -1
-}
-func (v *Vec2) InvertY() {
-    v.Y *= -1
-}
-
-func (v *Vec2) Scale(scale float32) {
-    v.X *= scale
-    v.Y *= scale
-}
-
-// normalizes vector & returns vector length
-func (v *Vec2) Normalize() float32 {
-    l := float32(v.Len())
-    v.Scale(1/l)
-    return l
-}
-
-// add x & y
-func (v *Vec2) Add(x, y float32) {
-    v.X += x
-    v.Y += y
-}
-// add vector
-func (v *Vec2) Addv(other *Vec2) {
-    v.X += other.X
-    v.Y += other.Y
-}
-// add a flat value to x & y
-func (v *Vec2) Addf(flat float32) {
-    v.X += flat
-    v.Y += flat
-}
-func (v *Vec2) Len() float32 {
-    return float32(math.Sqrt(float64((v.X * v.X) + (v.Y * v.Y))))
-}
 
 
 // pN == 0 or 1 | player 1 or 2
-func NewPlayer(pN uint8) Player {
-    hb := NewRectangle(0, 0, float32(PW), float32(PH))
-    if pN == 0 {
-        hb.X = float32(P1X)
-    } else {
-        hb.X = float32(P2X)
+func NewPlayer(pN uint8) *Player {
+    p := &Player {
+        hb: HitBox { width: PW, height: PH },
     }
+    if pN == 0 {
+        p.pos.X = P1X
+    } else {
+        p.pos.Y = P2X
+    }
+    p.hb.pos = &p.pos
 
-    return Player { HitBox: hb }
+    return p
 }
 type Player struct {
-    Pos     int32
+    pos     Position
     Score   uint8
-    HitBox  Rectangle
-}
-func (p *Player) Move(y int32) {
-    p.Pos = y
-    p.HitBox.Y = float32(y)
+    hb      HitBox
 }
 
 func (p *Player) CalculateHitZone(b *Ball) {
@@ -105,38 +54,42 @@ func (p *Player) CalculateHitZone(b *Ball) {
 
     var angle float32 = 0
     switch {
-    case zone >= 7: angle = 67.5    // southern most    +
-    case zone >= 6: angle = 45      // south            +
-    case zone >= 5: angle = 22.5    // southern mid     +
-    case zone >= 4: angle = 0       // center           0
-    case zone >= 3: angle = 0       // center           0
-    case zone >= 2: angle = -22.5   // northern mid     -
-    case zone >= 1: angle = -45     // north            -
-    default:        angle = -67.5   // northern most    -
+    case zone >= 7: angle = 45      // southern most    +
+    case zone >= 6: angle = 35      // south            +
+    case zone >= 5: angle = 25      // southern mid     +
+    case zone >= 4: angle = 15      // center           +
+    case zone >= 3: angle = 345     // center           -
+    case zone >= 2: angle = 335     // northern mid     -
+    case zone >= 1: angle = 325     // north            -
+    default:        angle = 315     // northern most    -
     }
 
-    if vel.X < 0 { angle = 180 - angle }
-    vel.Rotate(angle)
+    // if ball is going right, we need to invert this angle
+    if vel.X > 0 { angle = 180 - angle }
+    fmt.Println("hit zone:", zone)
+    fmt.Println("angle:", angle)
+    vel.SetRotation(angle)
 }
 
 
-func NewBall() Ball {
-    ball := Ball{}
+func NewBall() *Ball {
+    ball := &Ball{}
+    ball.Box.width = int32(BallS)
+    ball.Box.height = int32(BallS)
+    ball.Box.pos = &ball.Pos
     ball.Init(-1)
     return ball
 }
 type Ball struct {
-    Pos     Vec2
-    Vel     Vec2
-    HitBox  Rectangle
+    Pos     Position
+    Vel     Velocity
+    Box     HitBox
 }
 
 
 func (b *Ball) Move(x, y float32) {
     b.Pos.X = x
     b.Pos.Y = y
-    b.HitBox.X = x
-    b.HitBox.Y = y
 }
 func (b *Ball) MoveY(y float32) {
     b.Pos.Y = y
@@ -148,23 +101,17 @@ func (b *Ball) MoveX(x float32) {
 }
 
 // dir should be -1 or 1 for left or right
-func (b *Ball) Init(dir float32) {
-    half := float32(math.Trunc(float64(BallS) / 2))
-    b.Pos.X = CenterX - half
-    b.Pos.Y = CenterY - half
-    b.Vel.X = InitVel * dir
-    b.Vel.Y = 0
-    b.HitBox.X = b.Pos.X
-    b.HitBox.Y = b.Pos.Y
-    b.HitBox.Width = BallS
-    b.HitBox.Height = BallS
+func (b *Ball) Init(dir float64) {
+    half := math.Trunc(BallS / 2)
+    b.Pos.X = int32(CenterX - half)
+    b.Pos.Y = int32(CenterY - half)
+    b.Vel.Set(InitVel * dir, 0)
 }
 
 func (b *Ball) IncreaseVel() {
     vlen := b.Vel.Len()
     if vlen >= 700 { return }
-    b.Vel.Scale(1/vlen)
-    b.Vel.Scale(vlen + 50)
+    b.Vel.SetUnitLength(vlen + 50)
 }
 
 func (b *Ball) CheckScore() bool {
@@ -175,14 +122,14 @@ func (b *Ball) CheckScore() bool {
 func (b *Ball) CheckPaddleCol(p *Player) bool {
     if !CheckCollisionRecs(b.HitBox, p.HitBox) { return false }
 
-    var safeX float32
-    if b.Vel.X < 0 { // left collision
-        safeX = p.HitBox.Width + 6
-    } else {
-        safeX = p.HitBox.X - 1
+    var safeX int32
+    if b.Vel.X < 0 {    // left collision
+        safeX = P1X + int32(p.HitBox.Width) + 2
+    } else {            // right collision
+        safeX = int32(p.HitBox.X - BallS) - 2
     }
 
-    b.MoveX(safeX)
+    b.MoveX(float32(safeX))
     return true
 }
 
@@ -201,8 +148,10 @@ func (b *Ball) ApplyVelocity(dt float32) {
     b.Move(b.Pos.X + b.Vel.X * dt, b.Pos.Y + b.Vel.Y * dt)
 }
 
-var LeftScoreBox = NewRectangle(0, 0, 10, float32(Height))
-var RightScoreBox = NewRectangle(float32(Width) - 10, 0, 10, float32(Height))
+var TopBorder       = HitBox{ &Position{0,0}, Width, 0 }
+var BottomBorder    = HitBox{ &Position{0,Height}, Width, 0 }
+var LeftScoreBox    = HitBox{ &Position{0,0}, 10, Height }
+var RightScoreBox   = HitBox{ &Position{Width - 10,0}, 10, Height }
 type GameState struct {
     P1      Player
     P2      Player
@@ -231,7 +180,8 @@ func (state *GameState) ScoreAgainst(p *Player) {
 
 var UpdateBall = NewUpdate(func(s *GameServer) UpStatus {
     ball := &s.State.Ball
-    //lastPos := ball.Pos
+    ball.ApplyVelocity(s.DeltaTime)
+
     var p *Player
     if ball.Vel.X < 0 {         // ball moving left >> p1
         p = &s.State.P1
@@ -242,9 +192,10 @@ var UpdateBall = NewUpdate(func(s *GameServer) UpStatus {
     ball.CheckYCol()
     // paddle collision
     if ball.CheckPaddleCol(p) {
-        ball.IncreaseVel()
-        ball.Vel.X *= -1
         p.CalculateHitZone(ball)
+        ball.IncreaseVel()
+        //ball.Vel.X *= -1
+        fmt.Println("Paddle collision:", ball.Vel)
     } else if ball.CheckScore() {
         s.State.ScoreAgainst(p)
         score := &packet.Score {
@@ -255,7 +206,6 @@ var UpdateBall = NewUpdate(func(s *GameServer) UpStatus {
         s.SendPacket(score)
     }
 
-    ball.ApplyVelocity(s.DeltaTime)
     return Ok
 }, 1)
 

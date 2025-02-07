@@ -16,7 +16,7 @@ const (
     Width   int32           = 600
     Height  int32           = 400
     PW      int32           = 10
-    PH      int32           = 60
+    PH      int32           = 80
     P1X     int32           = 5
     P2X     int32           = 600 - PW - 5
     CenterX int32           = 300
