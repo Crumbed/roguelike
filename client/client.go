@@ -163,8 +163,8 @@ func (c *Client) Connect(ip *net.TCPAddr) error {
     conn, err := net.DialTCP("tcp", nil, ip)
     fmt.Println("Establishing connection to:", ip.IP)
     if err != nil {
-        rl.CloseWindow()
         fmt.Println("Failed to dial server: ", err)
+        rl.CloseWindow()
         return err
     }
 
