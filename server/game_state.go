@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"main/packet"
 	"math"
 
@@ -32,27 +33,29 @@ func (p *Player) CalculateHitZone(b *Ball) {
     relY := b.Pos.Y - float32(p.Pos)
     zone := relY / 10 // paddle has 6 zones, 10 pixels tall
     vel  := &b.Vel
-    absX := math.Abs(float64(vel.X)) - 100
+    absX := math.Abs(float64(vel.X)) - 150
 
     var newY float64
     if zone >= 5 {          // southern most    +
-        newY = 2 * 100 + absX
+        newY = 2 * 150 + absX
     } else if zone >= 4 {   // southern         +
-        newY = 1 * 100 + absX
+        newY = 1 * 150 + absX
     } else if zone >= 3 {   // southern middle  +
-        newY = 0.25 * 100 + absX
+        newY = 0.25 * 150 + absX
     } else if zone >= 2 {   // northern middle  -
-        newY = -0.25 * 100 - absX
+        newY = -0.25 * 150 - absX
     } else if zone >= 1 {   // northern         -
-        newY = -1 * 100 - absX
+        newY = -1 * 150 - absX
     } else {                // northern most    -
-        newY = -2 * 100 - absX
+        newY = -2 * 150 - absX
     }
 
     // already moving in that direction
+    /*
     if (newY < 0 && vel.Y < 0) || (newY > 0 && vel.Y > 0) { 
         newY += float64(vel.Y) * 0.25 // add 25% of current y velocity to new velocity
     }
+    */
 
     vel.Y = float32(newY)
 }
@@ -68,8 +71,18 @@ func (b *Ball) Init(dir float32) {
     half := float32(math.Trunc(float64(BallS) / 2))
     b.Pos.X = CenterX - half
     b.Pos.Y = CenterY - half
-    b.Vel.X = 100 * dir
-    b.Vel.Y = 100 * dir
+    b.Vel.X = 150 * dir
+    b.Vel.Y = 0
+}
+
+func (b *Ball) IncreaseVel() {
+    if b.Vel.X >= 700 || b.Vel.X <= -700 { return }
+    if b.Vel.X < 0 {
+        b.Vel.X -= 50
+        return
+    }
+
+    b.Vel.X += 50
 }
 
 // first bool is paddle collision, second is x collision (meaning a point was scored)
@@ -171,9 +184,10 @@ var UpdateBall = NewUpdate(func(s *GameServer) UpStatus {
     // paddle collision
     pc, xc := ball.CheckPaddleCol(p)
     if pc {
-        ball.Vel.X *= -1.5
+        ball.IncreaseVel()
+        ball.Vel.X *= -1
         p.CalculateHitZone(ball)
-        //fmt.Println("Paddle collision:", b.Vel, b.Pos)
+        //fmt.Printf("Puck vel: x=%f, y%f\n", ball.Vel.X, ball.Vel.Y)
     } else if xc {
         s.State.ScoreAgainst(p)
         score := &packet.Score {
