@@ -13,7 +13,7 @@ const (
     Width   int32   = 600
     Height  int32   = 400
     PW      int32   = 10
-    PH      int32   = 60
+    PH      int32   = 80
     P1X     int32   = 5
     P2X     int32   = 600 - PW - 5
     P1C     float32 = float32(P1X + PW)
@@ -23,10 +23,25 @@ const (
     BallS   float32 = 10
 )
 
+// pN == 0 or 1 | player 1 or 2
+func NewPlayer(pN uint8) Player {
+    hb := NewRectangle(0, 0, float32(PW), float32(PH))
+    if pN == 0 {
+        hb.X = float32(P1X)
+    } else {
+        hb.X = float32(P2X)
+    }
+
+    return Player { HitBox: hb }
+}
 type Player struct {
     Pos     int32
     Score   uint8
-    ColX    float32
+    HitBox  Rectangle
+}
+func (p *Player) Move(y int32) {
+    p.Pos = y
+    p.HitBox.Y = float32(y)
 }
 
 func (p *Player) CalculateHitZone(b *Ball) {
@@ -61,18 +76,44 @@ func (p *Player) CalculateHitZone(b *Ball) {
 }
 
 
+func NewBall() Ball {
+    ball := Ball{}
+    ball.Init(-1)
+    return ball
+}
 type Ball struct {
     Pos     Vector2
     Vel     Vector2
+    HitBox  Rectangle
 }
+
+func (b *Ball) Move(x, y float32) {
+    b.Pos.X = x
+    b.Pos.Y = y
+    b.HitBox.X = x
+    b.HitBox.Y = y
+}
+func (b *Ball) MoveY(y float32) {
+    b.Pos.Y = y
+    b.HitBox.Y = y
+}
+func (b *Ball) MoveX(x float32) {
+    b.Pos.X = x
+    b.HitBox.X = x
+}
+
 
 // dir should be -1 or 1 for left or right
 func (b *Ball) Init(dir float32) {
     half := float32(math.Trunc(float64(BallS) / 2))
     b.Pos.X = CenterX - half
     b.Pos.Y = CenterY - half
-    b.Vel.X = 150 * dir
+    b.Vel.X = 200 * dir
     b.Vel.Y = 0
+    b.HitBox.X = b.Pos.X
+    b.HitBox.Y = b.Pos.Y
+    b.HitBox.Width = BallS
+    b.HitBox.Height = BallS
 }
 
 func (b *Ball) IncreaseVel() {
@@ -85,63 +126,42 @@ func (b *Ball) IncreaseVel() {
     b.Vel.X += 50
 }
 
-// first bool is paddle collision, second is x collision (meaning a point was scored)
-func (b *Ball) CheckPaddleCol(p *Player) (bool, bool) {
-    xCol := false
+func (b *Ball) CheckScore() bool {
+    return CheckCollisionRecs(b.HitBox, LeftScoreBox) || CheckCollisionRecs(b.HitBox, RightScoreBox) 
+}
+
+// first bool is paddle collision
+func (b *Ball) CheckPaddleCol(p *Player) bool {
+    if !CheckCollisionRecs(b.HitBox, p.HitBox) { return false }
+
     var safeX float32
-    if p.ColX == P1C && b.Pos.X <= P1C {        // player 1
-        xCol = true
-        safeX = P1C + 1
-    } else if p.ColX == P2C && b.Pos.X >= P2C - BallS { // player 2
-        xCol = true
-        safeX = P2C - BallS - 1
+    if b.Vel.X < 0 { // left collision
+        safeX = p.HitBox.Width + 6
+    } else {
+        safeX = p.HitBox.X - 1
     }
 
-    pY := float32(p.Pos)
-    if xCol && (b.Pos.Y <= pY + float32(PH) && b.Pos.Y >= pY - BallS) {
-        b.Pos.X = safeX
-        return true, true
-    }
-
-    return false, xCol
+    b.MoveX(safeX)
+    return true
 }
 
 // checks for collision, but also moves ball in case of clipping
-func (b *Ball) CheckYCol() bool {
-    col := false
+func (b *Ball) CheckYCol() {
     if b.Pos.Y <= 0 {
-        col = true 
-        b.Pos.Y = 1
+        b.MoveY(1)
+        b.Vel.Y *= -1
     } else if b.Pos.Y >= float32(Height) - BallS {
-        col = true
-        b.Pos.Y = float32(Height) - BallS - 1
+        b.MoveY(float32(Height) - BallS - 1)
+        b.Vel.Y *= -1
     }
-
-    return col
-}
-
-func (b *Ball) CheckXCol() bool { 
-    return b.Pos.X <= 0 || b.Pos.X >= float32(Width) - BallS 
 }
 
 func (b *Ball) ApplyVelocity(dt float32) {
-    b.Pos.X += b.Vel.X * dt
-    b.Pos.Y += b.Vel.Y * dt
+    b.Move(b.Pos.X + b.Vel.X * dt, b.Pos.Y + b.Vel.Y * dt)
 }
 
-func (b *Ball) CheckCollision(p *Player) {
-    if b.CheckYCol() { // top or bottom border
-        b.Vel.Y *= -1 // invert y velocity
-        //fmt.Println("Top or bottom collision:", b.Vel, b.Pos)
-    }
-
-    if b.CheckXCol() { // side border
-        b.Vel.X *= -1 // invert x velocity
-        //fmt.Println("Side collision:", b.Vel, b.Pos)
-    }
-
-}
-
+var LeftScoreBox = NewRectangle(0, 0, 10, float32(Height))
+var RightScoreBox = NewRectangle(float32(Width) - 10, 0, 10, float32(Height))
 type GameState struct {
     P1      Player
     P2      Player
@@ -150,12 +170,10 @@ type GameState struct {
 }
 
 func NewGame() *GameState {
-    ball := Ball{}
-    ball.Init(-1)
     return &GameState {
-        P1: Player { ColX: P1C },
-        P2: Player { ColX: P2C },
-        Ball: ball,
+        P1: NewPlayer(0),
+        P2: NewPlayer(1),
+        Ball: NewBall(),
         Started: false,
     }
 }
@@ -180,15 +198,13 @@ var UpdateBall = NewUpdate(func(s *GameServer) UpStatus {
         p = &s.State.P2
     } else { return Ok }        // ball isnt moving left or right (shouldnt be moving at all)
 
-    ball.CheckCollision(p)
+    ball.CheckYCol()
     // paddle collision
-    pc, xc := ball.CheckPaddleCol(p)
-    if pc {
+    if ball.CheckPaddleCol(p) {
         ball.IncreaseVel()
         ball.Vel.X *= -1
         p.CalculateHitZone(ball)
-        //fmt.Printf("Puck vel: x=%f, y%f\n", ball.Vel.X, ball.Vel.Y)
-    } else if xc {
+    } else if ball.CheckScore() {
         s.State.ScoreAgainst(p)
         score := &packet.Score {
             P1: s.State.P1.Score,
@@ -199,8 +215,6 @@ var UpdateBall = NewUpdate(func(s *GameServer) UpStatus {
     }
 
     ball.ApplyVelocity(s.DeltaTime)
-
-
     return Ok
 }, 1)
 
