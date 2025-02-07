@@ -50,7 +50,7 @@ var SendBallMove = NewUpdate(func(s *GameServer) UpStatus {
     })
 
     return Ok
-}, 2)
+}, 1)
 
 
 

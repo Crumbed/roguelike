@@ -22,7 +22,7 @@ const (
     CenterX int32           = 300
     CenterY int32           = 200
     BallS   float32         = 10 // hehe balls
-    Update  time.Duration   = time.Millisecond * 50
+    Update  time.Duration   = time.Millisecond * 10
 )
 
 type PlayerN uint8
@@ -46,7 +46,7 @@ func (p *Player) render(n PlayerN) {
     }
 
     rl.DrawRectangle(
-        x, p.Pos,
+        x, p.NewPos,
         PW, PH,
         rl.White)
 }
@@ -89,12 +89,14 @@ func (c *Client) Start() {
     rl.SetTargetFPS(60)
     font = rl.LoadFontEx("assets/joystix_mono.otf", 100, nil)
     me := &c.Players[c.Iam]
+    /*
     var other *Player
     if c.Iam == 0 { 
         other = &c.Players[1] 
     } else { other = &c.Players[0] }
+    */
 
-    var p2t int32 = 0
+    //var p2t int32 = 0
     //bd := rl.NewVector2(0, 0)
     firstStart := true
     for !rl.WindowShouldClose() { // main loop
@@ -106,15 +108,14 @@ func (c *Client) Start() {
 
         if c.Started { 
             keyInput(me) 
+            /*
             if p2t == 0 && other.Pos != other.NewPos {
                 p2t = other.NewPos - other.Pos    
             }
-            /*
             if (bd.X == 0 && bd.Y == 0) && c.Ball.Pos != c.Ball.NewPos {
                 bd.X = c.Ball.NewPos.X - c.Ball.Pos.X
                 bd.Y = c.Ball.NewPos.Y - c.Ball.Pos.Y
             }
-            */
 
             if other.Pos >= other.NewPos {
                 other.Pos = other.NewPos
