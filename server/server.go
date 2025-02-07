@@ -146,6 +146,8 @@ func (s *GameServer) read(c net.Conn) {
                 ip := c.RemoteAddr()
                 s.RemovePlayerIp(ip)
                 s.Logf("Player %s has disconnected\n", ip)
+                s.Log("Stopping server...")
+                os.Exit(0)
                 return 
             }
             s.Log("Read err:", err)

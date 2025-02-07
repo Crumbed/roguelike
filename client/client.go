@@ -6,6 +6,7 @@ import (
 	"main/packet"
 	"main/server"
 	"net"
+	"os"
 	"time"
 
 	"github.com/gen2brain/raylib-go/raylib"
@@ -195,6 +196,7 @@ func (self *Client) listen() {
         if err != nil {
             if err == io.EOF {
                 fmt.Println("Connection lost")
+                os.Exit(0)
                 return 
             }
             fmt.Println("Read err:", err)
