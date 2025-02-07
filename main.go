@@ -16,31 +16,25 @@ const (
     Client
 )
 
-func getProgramType() ProgramType {
-    args := os.Args
+func getProgramType(args []string) (ProgramType, string) {
     if len(args) == 1 {
-        fmt.Println("No argument found, defaulting to client...")
-        return Client
+        fmt.Println("No argument found, defaulting to client at localhost:3000")
+        return Client, "localhost:3000"
     } else if args[1] == "server" || args[1] == "s" {
-        return Server
-    } else {
-        fmt.Println("Invalid argument, defaulting to client...")
-        return Client
+        if len(args) == 3 { return Server, args[2] }
+        return Server, ""
     }
+
+    return Client, args[1]
 }
 
-const (
-    Host = "localhost"
-    Port = "3000"
-    Type = "tcp"
-)
-
+const Type = "tcp"
 func main() {
-    fmt.Println("Hello, world")
-    p_type := getProgramType()
+    args := os.Args
+    p_type, ip := getProgramType(args)
 
     if p_type == Server {
-        server.StartServer()
+        server.StartServer(ip)
         return
     }
 
@@ -49,8 +43,8 @@ func main() {
     c.AddPacketListener(packet.BWGameStart, client.SCGameStartListener)
     c.AddPacketListener(packet.BWPaddleMove, client.CCPaddleMoveListener)
     c.AddPacketListener(packet.SCBallMove, client.SCBallMoveListener)
-    // default server
-    tcpIp, err := net.ResolveTCPAddr(Type, Host + ":" + Port)
+    c.AddPacketListener(packet.SCScore, client.SCScoreListener)
+    tcpIp, err := net.ResolveTCPAddr(Type, ip)
     if err != nil {
         log.Fatal("Failed to resolve tcp addr: ", err)
     }

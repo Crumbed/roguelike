@@ -82,9 +82,11 @@ type Client struct {
     Ball        Ball
 }
 
+var font rl.Font
 func (c *Client) Start() {
     rl.InitWindow(server.Width, server.Height, "Game window")
     rl.SetTargetFPS(60)
+    font = rl.LoadFontEx("assets/joystix_mono.otf", 100, nil)
     me := &c.Players[c.Iam]
     var other *Player
     if c.Iam == 0 { 
@@ -132,6 +134,7 @@ func (c *Client) Start() {
         c.render()   
     }
 
+    rl.UnloadFont(font)
     rl.CloseWindow()
 }
 
@@ -159,6 +162,7 @@ func (c *Client) Connect(ip *net.TCPAddr) error {
     conn, err := net.DialTCP("tcp", nil, ip)
     fmt.Println("Establishing connection to:", ip.IP)
     if err != nil {
+        rl.CloseWindow()
         fmt.Println("Failed to dial server: ", err)
         return err
     }
@@ -261,6 +265,7 @@ func keyInput(p *Player) {
 }
 
 func (c *Client) render() {
+    p1, p2 := &c.Players[0], &c.Players[1]
     rl.BeginDrawing()
     rl.ClearBackground(rl.Black)
     rl.DrawRectangle(
@@ -268,19 +273,34 @@ func (c *Client) render() {
         2, Height,
         rl.Gray)
 
-    // player 1 paddle
-    c.Players[0].render(0)
-
     if !c.Started { 
         rl.EndDrawing()
         return
     }
+    drawScore(p1, p2)
 
+    // player 1 paddle
+    p1.render(0)
     // player 2 paddle
-    c.Players[1].render(1)
+    p2.render(1)
 
     // ball
     c.Ball.render()
 
     rl.EndDrawing()
 }
+
+
+func drawScore(p1, p2 *Player) {
+    p1str := fmt.Sprintf("%d", p1.Score)
+    p2str := fmt.Sprintf("%d", p2.Score)
+    p1pos := rl.NewVector2(float32(CenterX) - 20 - float32(len(p1str)) * 69, 0)
+    p2pos := rl.NewVector2(float32(CenterX) + 20, 0)
+    
+    rl.DrawTextEx(font, p1str, p1pos, 100, 0, rl.Gray)
+    rl.DrawTextEx(font, p2str, p2pos, 100, 0, rl.Gray)
+}
+
+
+
+

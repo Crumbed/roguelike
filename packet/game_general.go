@@ -61,3 +61,35 @@ func (p *BallMove) Deserialize(data []byte) error {
     p.Y = y
     return err
 }
+
+
+// 3 | PacketType 1, P1 1, P2 1
+type Score struct {
+    P1  uint8
+    P2  uint8
+}
+func (p *Score) GetType() PacketType { return SCScore }
+func (p *Score) Serialize() ([]byte, error) {
+    buf := bytes.NewBuffer(make([]byte, 0, 3))
+    err := buf.WriteByte(byte(SCScore))
+    err = buf.WriteByte(p.P1)
+    err = buf.WriteByte(p.P2)
+
+    return buf.Bytes(), err
+}
+func (p *Score) Deserialize(data []byte) error {
+    buf := bytes.NewBuffer(data)
+    p1, err := buf.ReadByte()
+    p2, err := buf.ReadByte()
+
+    p.P1 = p1
+    p.P2 = p2
+    return err
+}
+
+
+
+
+
+
+

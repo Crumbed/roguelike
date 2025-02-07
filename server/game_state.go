@@ -1,7 +1,7 @@
 package server
 
 import (
-	"fmt"
+	"main/packet"
 	"math"
 
 	. "github.com/gen2brain/raylib-go/raylib"
@@ -28,11 +28,48 @@ type Player struct {
     ColX    float32
 }
 
+func (p *Player) CalculateHitZone(b *Ball) {
+    relY := b.Pos.Y - float32(p.Pos)
+    zone := relY / 10 // paddle has 6 zones, 10 pixels tall
+    vel  := &b.Vel
+    absX := math.Abs(float64(vel.X)) - 100
+
+    var newY float64
+    if zone >= 5 {          // southern most    +
+        newY = 2 * 100 + absX
+    } else if zone >= 4 {   // southern         +
+        newY = 1 * 100 + absX
+    } else if zone >= 3 {   // southern middle  +
+        newY = 0.25 * 100 + absX
+    } else if zone >= 2 {   // northern middle  -
+        newY = -0.25 * 100 - absX
+    } else if zone >= 1 {   // northern         -
+        newY = -1 * 100 - absX
+    } else {                // northern most    -
+        newY = -2 * 100 - absX
+    }
+
+    // already moving in that direction
+    if (newY < 0 && vel.Y < 0) || (newY > 0 && vel.Y > 0) { 
+        newY += float64(vel.Y) * 0.25 // add 25% of current y velocity to new velocity
+    }
+
+    vel.Y = float32(newY)
+}
 
 
 type Ball struct {
     Pos     Vector2
     Vel     Vector2
+}
+
+// dir should be -1 or 1 for left or right
+func (b *Ball) Init(dir float32) {
+    half := float32(math.Trunc(float64(BallS) / 2))
+    b.Pos.X = CenterX - half
+    b.Pos.Y = CenterY - half
+    b.Vel.X = 100 * dir
+    b.Vel.Y = 100 * dir
 }
 
 // first bool is paddle collision, second is x collision (meaning a point was scored)
@@ -90,14 +127,6 @@ func (b *Ball) CheckCollision(p *Player) {
         //fmt.Println("Side collision:", b.Vel, b.Pos)
     }
 
-    // paddle collision
-    pc, xc := b.CheckPaddleCol(p)
-    if pc {
-        b.Vel.X *= -1
-        //fmt.Println("Paddle collision:", b.Vel, b.Pos)
-    } else if xc {
-        fmt.Println("Point scored")
-    }
 }
 
 type GameState struct {
@@ -108,15 +137,23 @@ type GameState struct {
 }
 
 func NewGame() *GameState {
-    half := float32(math.Trunc(float64(BallS) / 2))
+    ball := Ball{}
+    ball.Init(-1)
     return &GameState {
         P1: Player { ColX: P1C },
         P2: Player { ColX: P2C },
-        Ball: Ball { 
-            Pos: NewVector2(CenterX - half, CenterY - half),
-            Vel: NewVector2(-100, -100),
-        },
+        Ball: ball,
         Started: false,
+    }
+}
+
+func (state *GameState) ScoreAgainst(p *Player) {
+    if *p == state.P1 {
+        state.P2.Score += 1
+        state.Ball.Init(1)
+    } else {
+        state.P1.Score += 1
+        state.Ball.Init(-1)
     }
 }
 
@@ -131,7 +168,24 @@ var UpdateBall = NewUpdate(func(s *GameServer) UpStatus {
     } else { return Ok }        // ball isnt moving left or right (shouldnt be moving at all)
 
     ball.CheckCollision(p)
+    // paddle collision
+    pc, xc := ball.CheckPaddleCol(p)
+    if pc {
+        ball.Vel.X *= -1.5
+        p.CalculateHitZone(ball)
+        //fmt.Println("Paddle collision:", b.Vel, b.Pos)
+    } else if xc {
+        s.State.ScoreAgainst(p)
+        score := &packet.Score {
+            P1: s.State.P1.Score,
+            P2: s.State.P2.Score,
+        }
+
+        s.SendPacket(score)
+    }
+
     ball.ApplyVelocity(s.DeltaTime)
+
 
     return Ok
 }, 1)

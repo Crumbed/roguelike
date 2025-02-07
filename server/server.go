@@ -14,7 +14,7 @@ import (
 
 
 
-func StartServer() {
+func StartServer(port string) {
     fmt.Println("Running server")
     server := NewServer(":3000")
     server.AddPacketListener(packet.CSConnect, CSConnectListener)

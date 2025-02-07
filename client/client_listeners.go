@@ -42,4 +42,11 @@ func SCBallMoveListener(context *packet.PacketContext, data packet.Packet) {
     client.Ball.NewPos.Y = ballPos.Y
 }
 
+func SCScoreListener(context *packet.PacketContext, data packet.Packet) {
+    client := context.Handler.(*Client)
+    score := data.(*packet.Score)
+
+    client.Players[0].Score = score.P1
+    client.Players[1].Score = score.P2
+}
 
