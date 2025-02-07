@@ -16,7 +16,7 @@ import (
 
 func StartServer(port string) {
     fmt.Println("Running server")
-    server := NewServer(":3000")
+    server := NewServer(port)
     server.AddPacketListener(packet.CSConnect, CSConnectListener)
     server.AddPacketListener(packet.BWPaddleMove, SSPaddleMoveListener)
     server.AddPacketListener(packet.BWGameStart, SSGameStartListener)
@@ -120,7 +120,7 @@ func (s *GameServer) Logf(format string, a ...any) {
 
 
 func (s *GameServer) listen() {
-    s.Log("Listening for connections...")
+    s.Log("Listening for connections on:", s.listener.Addr().String())
     for {
         if s.stop { return }
         conn, err := s.listener.Accept()
