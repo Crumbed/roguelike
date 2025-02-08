@@ -43,10 +43,10 @@ var ConfirmReady = NewUpdate(func(s *GameServer) UpStatus {
 }, 15)
 
 var SendBallMove = NewUpdate(func(s *GameServer) UpStatus {
-    ball := &s.State.Ball
+    ball := s.State.Ball
     s.SendPacket(&packet.BallMove {
-        X: ball.Pos.X,
-        Y: ball.Pos.Y,
+        X: float32(ball.Pos.X),
+        Y: float32(ball.Pos.Y),
     })
 
     return Ok
@@ -58,17 +58,17 @@ var SendBallMove = NewUpdate(func(s *GameServer) UpStatus {
 
 const (
     TargetTPS = 60
-    TargetTickTime = 1.0 / float32(TargetTPS)
+    TargetTickTime = 1.0 / float64(TargetTPS)
     Cooldown time.Duration = time.Millisecond * 10
 )
 
 func (s *GameServer) UpdateClients() {
-    var elapsed float32 = 0.0
+    var elapsed float64 = 0.0
     last := time.Now().UnixNano() / int64(time.Millisecond)
 
     for {
         current := time.Now().UnixNano() / int64(time.Millisecond)
-        s.DeltaTime = float32(current - last) / 1000 // Delta time seconds
+        s.DeltaTime = float64(current - last) / 1000 // Delta time seconds
         last = current
         elapsed += s.DeltaTime
 
@@ -78,7 +78,7 @@ func (s *GameServer) UpdateClients() {
 }
 
 
-func (s *GameServer) updateTicks(elapsed *float32) {
+func (s *GameServer) updateTicks(elapsed *float64) {
     for *elapsed >= TargetTickTime {
         at := s.updateFns.Front()
         for at != nil {

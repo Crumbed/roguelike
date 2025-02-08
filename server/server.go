@@ -46,7 +46,7 @@ type GameServer struct {
     State       *GameState
     p_listeners map[packet.PacketType][]packet.PacketListener
     updateFns   *list.List
-    DeltaTime   float32         // DeltaTime seconds
+    DeltaTime   float64         // DeltaTime seconds
 }
 
 func NewServer(listenerAddr string) *GameServer {

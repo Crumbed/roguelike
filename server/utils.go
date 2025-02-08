@@ -1,19 +1,23 @@
 package server
 
-import "math"
+import (
+	"math"
+)
 
 
 type Direction uint8 
 const (
     Left Direction = iota
     Right
+    None
 )
 
+func Radians(angle float64) float64 { return angle * (math.Pi / 180) }
 
-type Position struct { X, Y int32 }
+type Position struct { X, Y float64 }
 func (p *Position) ApplyVelocity(vel *Velocity, deltaTime float64) {
-    p.X += int32(vel.x * deltaTime)
-    p.Y += int32(vel.y * deltaTime)
+    p.X += vel.x * deltaTime
+    p.Y += vel.y * deltaTime
 }
 
 type HitBox struct {
@@ -23,8 +27,8 @@ type HitBox struct {
 }
 
 func (hb *HitBox) CollidesWith(other *HitBox) bool {
-    cx := hb.pos.X < other.pos.X + other.width && hb.pos.X + hb.width > other.pos.X
-    cy := hb.pos.Y < other.pos.Y + other.height && hb.pos.Y + hb.height > other.pos.Y
+    cx := hb.pos.X <= other.pos.X + float64(other.width) && other.pos.X <= hb.pos.X + float64(hb.width) 
+    cy := hb.pos.Y <= other.pos.Y + float64(other.height) && other.pos.Y <= hb.pos.Y + float64(hb.height)
 
     return cx && cy
 }
@@ -53,8 +57,9 @@ func (v *Velocity) Rotate(angle float64) {
     cosres := math.Cos(angle)
     sinres := math.Sin(angle)
 
-    v.x = v.x*cosres - v.y*sinres
-    v.y = v.x*sinres + v.y*cosres
+    x, y := v.x, v.y
+    v.x = x*cosres - y*sinres
+    v.y = x*sinres + y*cosres
 }
 
 // Sets the angle of rotation
@@ -112,6 +117,11 @@ func (v *Velocity) SetUnitLength(units float64) {
 }
 
 func (v *Velocity) GetDir() Direction {
-    if v.x < 0 { return Left }
-    return Right
+    if v.x < 0 {
+        return Left 
+    } else if v.x > 0 {
+        return Right
+    }
+
+    return None
 }

@@ -54,10 +54,10 @@ func SSPaddleMoveListener(context *packet.PacketContext, data packet.Packet) {
 
     var otherPlayer uint8
     if move.PlayerN == 0 {
-        server.State.P1.Move(move.Pos)
+        server.State.P1.pos.Y = float64(move.Pos)
         otherPlayer = 1
     } else {
-        server.State.P2.Move(move.Pos)
+        server.State.P2.pos.Y = float64(move.Pos)
     }
 
     server.SendPacketTo(data, server.Players[otherPlayer])
