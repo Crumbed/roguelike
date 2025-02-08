@@ -2,7 +2,6 @@ package server
 
 import (
 	//"fmt"
-	"fmt"
 	"main/packet"
 	"math"
 
@@ -65,8 +64,8 @@ func (p *Player) CalculateHitZone(b *Ball) {
 
     // if ball is going right, we need to invert this angle
     if vel.GetDir() == Right { angle = 180 - angle }
-    fmt.Println("hit zone:", zone)
-    fmt.Println("angle:", angle)
+    //fmt.Println("hit zone:", zone)
+    //fmt.Println("angle:", angle)
     vel.SetRotation(Radians(angle))
 }
 
@@ -97,7 +96,7 @@ func (b *Ball) Init(dir float64) {
 
 func (b *Ball) IncreaseVel() {
     vlen := b.Vel.Len()
-    if vlen >= 700 { return }
+    //if vlen >= 700 { return }
     b.Vel.SetUnitLength(vlen + 50)
 }
 

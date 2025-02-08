@@ -18,8 +18,8 @@ const (
 
 func getProgramType(args []string) (ProgramType, string) {
     if len(args) == 1 {
-        fmt.Println("No argument found, defaulting to client at localhost:3000")
-        return Client, "localhost:3000"
+        fmt.Println("No argument found, defaulting to last connected server")
+        return Client, ""
     } else if args[1] == "server" || args[1] == "s" {
         if len(args) == 3 { return Server, args[2] }
         return Server, ""
@@ -38,6 +38,9 @@ func main() {
         return
     }
 
+    // Read last file
+    if ip == "" { ip = readLastIp() }
+
     c := client.NewClient()   
     c.AddPacketListener(packet.SCJoinResponse, client.SCJoinResponseListener)
     c.AddPacketListener(packet.BWGameStart, client.SCGameStartListener)
@@ -50,6 +53,15 @@ func main() {
     }
     c.Connect(tcpIp)
     c.Start()
+}
+
+func readLastIp() string {
+    buf, err := os.ReadFile("last_server")
+    if err != nil {
+        log.Fatal("Failed to get last sever")
+    }
+
+    return string(buf)
 }
 
 

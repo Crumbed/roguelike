@@ -3,6 +3,7 @@ package client
 import (
 	"fmt"
 	"io"
+	"log"
 	"main/packet"
 	"main/server"
 	"net"
@@ -171,6 +172,7 @@ func (c *Client) Connect(ip *net.TCPAddr) error {
         rl.CloseWindow()
         return err
     }
+    writeServer(ip.AddrPort().String())
 
     if c.Conn != nil {
         c.Conn.Close()
@@ -307,6 +309,12 @@ func drawScore(p1, p2 *Player) {
     rl.DrawTextEx(font, p2str, p2pos, 100, 0, rl.Gray)
 }
 
+func writeServer(ip string) {
+    err := os.WriteFile("last_server", []byte(ip), 0644)
+    if err != nil {
+        log.Fatal("Failed to write last server...")
+    }
+}
 
 
 

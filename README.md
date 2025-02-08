@@ -9,7 +9,7 @@ Primarily server code but under all that is a janky version of Pong that is able
 ## Running
 - You cannot run the client without connecting to a server.
 - To host a server, run the command `go run . server :PORT`. If no port is provided, it will default to `3000`.
-- To connect to a server, run the command `go run . IP:PORT`. If no IP is provided, it will default to `localhost:3000`.
+- To connect to a server, run the command `go run . IP:PORT`. If no IP is provided, it will default to the last server you connected to.
 - Whenever the server closes, all connected clients will close. And whenever a client closes, the server will close.
 - First player to connect to the server will be player 1, and the second will be player 2.
 - You move your paddle using `UP` & `DOWN` arrow keys, or `K` & `J` keys.
