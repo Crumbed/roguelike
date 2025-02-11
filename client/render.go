@@ -45,7 +45,7 @@ func (s *Screen) UpdateSize() {
     if s.w == w && s.h == h { return }
     s.w = w
     s.h = h
-    s.scale = float32(math.Min(float64(w / Width), float64(h / Height)))
+    s.scale = float32(math.Min(float64(w) / float64(Width), float64(h) / float64(Height)))
 }
 
 func (s *Screen) StartRendering() {
@@ -57,13 +57,24 @@ func (s *Screen) FinalizeRender() {
     rl.BeginDrawing()
     rl.ClearBackground(rl.Black)
 
-    sw, _ := float32(s.w), float32(s.h)
+    sw, sh := float32(s.w), float32(s.h)
     w, h := float32(Width), float32(Height)
+    scaleRect := rl.NewRectangle(0, 0, w * s.scale, h * s.scale)
+    scaledW := w * s.scale
+    scaledH := h * s.scale
+    if scaledW == sw { // center y
+        scaleRect.Y = (sh - scaledH) * 0.5
+    } else if scaledH == sh { // center x
+        scaleRect.X = (sw - scaledW) * 0.5
+    } else { // center both
+        scaleRect.X = (sw - scaledW) * 0.5
+        scaleRect.Y = (sh - scaledH) * 0.5
+    }
+
     rl.DrawTexturePro(s.buffer.Texture, 
         rl.NewRectangle(0, 0, float32(s.buffer.Texture.Width), float32(-s.buffer.Texture.Height)),
-        //rl.NewRectangle(0, 0, w * s.scale, h * s.scale),
         //rl.NewRectangle((sw - (w * s.scale)) * 0.5, (sh - (h * s.scale)) * 0.5, w * s.scale, h * s.scale),
-        rl.NewRectangle((sw - (w * s.scale)) * 0.5, 0, w * s.scale, h * s.scale),
+        scaleRect,
         rl.NewVector2(0, 0), 0, rl.White)
 
     rl.EndDrawing()
