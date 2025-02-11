@@ -21,7 +21,7 @@ const (
     CenterX float64 = 300
     CenterY float64 = 200
     BallS   float64 = 10
-    InitVel float64 = 200
+    InitVel float64 = 300
 )
 
 
@@ -97,7 +97,7 @@ func (b *Ball) Init(dir float64) {
 func (b *Ball) IncreaseVel() {
     vlen := b.Vel.Len()
     //if vlen >= 700 { return }
-    b.Vel.SetUnitLength(vlen + 50)
+    b.Vel.SetUnitLength(vlen + 100)
 }
 
 // first bool is paddle collision

@@ -5,7 +5,6 @@ import (
 	"io"
 	"log"
 	"main/packet"
-	"main/server"
 	"net"
 	"os"
 	"time"
@@ -84,11 +83,8 @@ type Client struct {
     Ball        Ball
 }
 
-var font rl.Font
 func (c *Client) Start() {
-    rl.InitWindow(server.Width, server.Height, "Game window")
-    rl.SetTargetFPS(60)
-    font = rl.LoadFontEx("assets/joystix_mono.otf", 100, nil)
+    screen := InitScreen()
     me := &c.Players[c.Iam]
     /*
     var other *Player
@@ -137,7 +133,7 @@ func (c *Client) Start() {
             }
             */
         }
-        c.render()   
+        c.render(&screen)   
     }
 
     rl.UnloadFont(font)
@@ -262,6 +258,10 @@ func keyInput(p *Player) {
             p.Pos = Height - PH
             return
         }
+
+        if rl.IsCursorHidden() == false {
+            rl.HideCursor()
+        }
     }
     if rl.IsKeyDown(rl.KeyK) || rl.IsKeyDown(rl.KeyUp) {
         p.Pos += int32(-500 * rl.GetFrameTime())
@@ -269,44 +269,11 @@ func keyInput(p *Player) {
             p.Pos = 0
             return
         }
+
+        if rl.IsCursorHidden() == false {
+            rl.HideCursor()
+        }
     }
-}
-
-func (c *Client) render() {
-    p1, p2 := &c.Players[0], &c.Players[1]
-    rl.BeginDrawing()
-    rl.ClearBackground(rl.Black)
-    rl.DrawRectangle(
-        CenterX - 1, 0,
-        2, Height,
-        rl.Gray)
-
-    if !c.Started { 
-        rl.EndDrawing()
-        return
-    }
-    drawScore(p1, p2)
-
-    // player 1 paddle
-    p1.render(0)
-    // player 2 paddle
-    p2.render(1)
-
-    // ball
-    c.Ball.render()
-
-    rl.EndDrawing()
-}
-
-
-func drawScore(p1, p2 *Player) {
-    p1str := fmt.Sprintf("%d", p1.Score)
-    p2str := fmt.Sprintf("%d", p2.Score)
-    p1pos := rl.NewVector2(float32(CenterX) - 20 - float32(len(p1str)) * 69, 0)
-    p2pos := rl.NewVector2(float32(CenterX) + 20, 0)
-    
-    rl.DrawTextEx(font, p1str, p1pos, 100, 0, rl.Gray)
-    rl.DrawTextEx(font, p2str, p2pos, 100, 0, rl.Gray)
 }
 
 func writeServer(ip string) {
