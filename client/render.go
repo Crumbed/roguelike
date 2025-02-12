@@ -174,11 +174,11 @@ func (c *Client) render() {
 func (c *Client) drawScore(p1, p2 *Player) {
     p1str := fmt.Sprintf("%d", p1.Score)
     p2str := fmt.Sprintf("%d", p2.Score)
-    p1pos := rl.NewVector2(float32(CenterX) - 20 - float32(len(p1str)) * 69, 0)
+    p1pos := rl.NewVector2(float32(CenterX) - 20 - float32(len(p1str)) * 64, 0)
     p2pos := rl.NewVector2(float32(CenterX) + 20, 0)
     
-    rl.DrawTextEx(c.screen.font, p1str, p1pos, 100, 0, rl.Gray)
-    rl.DrawTextEx(c.screen.font, p2str, p2pos, 100, 0, rl.Gray)
+    rl.DrawTextEx(c.screen.font, p1str, p1pos, 64, 0, rl.Gray)
+    rl.DrawTextEx(c.screen.font, p2str, p2pos, 64, 0, rl.Gray)
 }
 
 func ipInput(c *Client) {

@@ -236,7 +236,7 @@ func (c *Client) AddPacketListener(
 
 
 func keyInput(p *Player) {
-    if rl.IsKeyDown(rl.KeyJ) || rl.IsKeyDown(rl.KeyDown) {
+    if rl.IsKeyDown(rl.KeyJ) || rl.IsKeyDown(rl.KeyDown) || rl.IsKeyDown(rl.KeyS) {
         p.Pos += int32(500 * rl.GetFrameTime())
         if p.Pos + PH >= Height {
             p.Pos = Height - PH
@@ -247,7 +247,7 @@ func keyInput(p *Player) {
             rl.HideCursor()
         }
     }
-    if rl.IsKeyDown(rl.KeyK) || rl.IsKeyDown(rl.KeyUp) {
+    if rl.IsKeyDown(rl.KeyK) || rl.IsKeyDown(rl.KeyUp) || rl.IsKeyDown(rl.KeyW) {
         p.Pos += int32(-500 * rl.GetFrameTime())
         if p.Pos <= 0 {
             p.Pos = 0
