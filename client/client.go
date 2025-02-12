@@ -160,7 +160,8 @@ func (c *Client) Connect() error {
     fmt.Println("Connected to:", c.Conn.RemoteAddr())
 
     connect := &packet.Connect { Name: "Player" }
-    c.SendPacket(connect)
+    err = c.SendPacket(connect)
+    fmt.Println(err)
 
     return nil
 }
