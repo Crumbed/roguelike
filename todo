@@ -1,3 +1,0 @@
-1. Change collision detection to use rl.Rectangle
-2. Change paddle size (80)
-3. Make server stay open if client disconnects

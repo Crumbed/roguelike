@@ -77,6 +77,17 @@ func NewClient() *Client {
     }
 }
 
+func (c *Client) Reset() {
+    c.Conn = nil
+    c.screen.disp = StartMenu
+    c.Players = [2]Player{}
+    c.Started = false
+    c.Ball = Ball {
+        NewPos: rl.NewVector2(float32(CenterX) - 5, float32(CenterY) - 5),
+        Pos: rl.NewVector2(float32(CenterX) - 5, float32(CenterY) - 5),
+    }
+}
+
 type Client struct {
     Conn        net.Conn
     listeners   map[packet.PacketType][]packet.PacketListener
@@ -89,27 +100,12 @@ type Client struct {
 }
 
 func (c *Client) Start() {
-    var me *Player = nil
-    /*
-    var other *Player
-    if c.Iam == 0 { 
-        other = &c.Players[1] 
-    } else { other = &c.Players[0] }
-    */
+    go c.UpdateServer()
 
-    //var p2t int32 = 0
-    //bd := rl.NewVector2(0, 0)
-    firstStart := true
     for !rl.WindowShouldClose() { // main loop
-        if c.Conn != nil && c.Started && firstStart {
-            firstStart = false
-            me = &c.Players[c.Iam]
-            go c.UpdateServer()
-        }
-
         switch c.screen.disp {
         case StartMenu: ipInput(c)
-        case Game: keyInput(me) 
+        case Game: keyInput(&c.Players[c.Iam]) 
         }
 
         c.render()   
@@ -124,6 +120,7 @@ func (c *Client) UpdateServer() {
     p := &c.Players[c.Iam]
 
     for {
+        if c.Conn == nil { continue }
         if lastPos == p.Pos { continue }
         lastPos = p.Pos
         packet := &packet.PaddleMove {
@@ -182,7 +179,6 @@ func (self *Client) listen() {
         if err != nil {
             if err == io.EOF {
                 fmt.Println("Connection lost")
-                os.Exit(0)
                 return 
             }
             fmt.Println("Read err:", err)
