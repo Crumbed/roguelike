@@ -15,6 +15,7 @@ import (
 const (
     Width   int32           = 600
     Height  int32           = 400
+    FSize   int32           = 50
     PW      int32           = 10
     PH      int32           = 80
     P1X     int32           = 5
@@ -65,6 +66,7 @@ func NewClient() *Client {
     return &Client {
         Conn: nil,
         listeners: make(map[packet.PacketType][]packet.PacketListener),
+        screen: InitScreen(),
         Players: [2]Player{},
         Started: false,
         Ball: Ball {
@@ -77,6 +79,7 @@ func NewClient() *Client {
 type Client struct {
     Conn        net.Conn
     listeners   map[packet.PacketType][]packet.PacketListener
+    screen      Screen
     Iam         PlayerN
     Players     [2]Player
     Started     bool
@@ -84,7 +87,6 @@ type Client struct {
 }
 
 func (c *Client) Start() {
-    screen := InitScreen()
     me := &c.Players[c.Iam]
     /*
     var other *Player
@@ -97,7 +99,10 @@ func (c *Client) Start() {
     //bd := rl.NewVector2(0, 0)
     firstStart := true
     for !rl.WindowShouldClose() { // main loop
-        if c.Conn == nil { continue }
+        if c.Conn == nil {
+            c.render()
+            continue 
+        }
         if c.Started && firstStart {
             firstStart = false
             go c.UpdateServer()
@@ -133,10 +138,10 @@ func (c *Client) Start() {
             }
             */
         }
-        c.render(&screen)   
+        c.render()   
     }
 
-    rl.UnloadFont(font)
+    rl.UnloadFont(c.screen.font)
     rl.CloseWindow()
 }
 

@@ -6,7 +6,7 @@ import (
 	"main/client"
 	"main/packet"
 	"main/server"
-	"net"
+	//"net"
 	"os"
 )
 
@@ -47,11 +47,14 @@ func main() {
     c.AddPacketListener(packet.BWPaddleMove, client.CCPaddleMoveListener)
     c.AddPacketListener(packet.SCBallMove, client.SCBallMoveListener)
     c.AddPacketListener(packet.SCScore, client.SCScoreListener)
+
+    /*
     tcpIp, err := net.ResolveTCPAddr(Type, ip)
     if err != nil {
         log.Fatal("Failed to resolve tcp addr: ", err)
     }
     c.Connect(tcpIp)
+    */
     c.Start()
 }
 
