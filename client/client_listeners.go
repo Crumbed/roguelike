@@ -18,7 +18,7 @@ func SCJoinResponseListener(context *packet.PacketContext, p packet.Packet) {
 
     fmt.Println("Game is full, connection refused...")
     client.Conn.Close()
-    client.Reset()
+    //client.Reset()
     ConnectError = "game is full."
 }
 

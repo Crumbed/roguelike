@@ -33,7 +33,8 @@ func CSConnectListener(context *packet.PacketContext, data packet.Packet) {
     
     server.SendPacketTo(resp, profile)
     if !resp.IsOk() {
-        server.Logf("Kicking %s because game is full", sender)
+        server.Logf("Kicking %s because game is full", sender.RemoteAddr().String())
+        sender.Close()
         return
     }
 
