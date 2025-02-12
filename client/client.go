@@ -117,10 +117,11 @@ func (c *Client) Start() {
 
 func (c *Client) UpdateServer() {
     lastPos := int32(0)
-    p := &c.Players[c.Iam]
+    var p *Player
 
     for {
         if c.Conn == nil { continue }
+        p = &c.Players[c.Iam]
         if lastPos == p.Pos { continue }
         lastPos = p.Pos
         packet := &packet.PaddleMove {
@@ -179,6 +180,7 @@ func (self *Client) listen() {
         if err != nil {
             if err == io.EOF {
                 fmt.Println("Connection lost")
+                self.Reset()
                 return 
             }
             fmt.Println("Read err:", err)

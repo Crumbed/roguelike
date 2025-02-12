@@ -108,6 +108,7 @@ func (s *Screen) FinalizeRender() {
 
 
 func (c *Client) drawMenu() {
+    rl.ClearBackground(rl.Black)
     rl.DrawTextEx(c.screen.font, "pong online", rl.NewVector2(float32(CenterX) - 264, 50), 48, 0, rl.White)
     rl.DrawRectangleRec(TextBox, rl.DarkGray)
     if len(c.serverIp) == 0 {
