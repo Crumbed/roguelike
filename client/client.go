@@ -67,6 +67,7 @@ func NewClient() *Client {
         Conn: nil,
         listeners: make(map[packet.PacketType][]packet.PacketListener),
         screen: InitScreen(),
+        serverIp: readLastIp(),
         Players: [2]Player{},
         Started: false,
         Ball: Ball {
@@ -80,6 +81,7 @@ type Client struct {
     Conn        net.Conn
     listeners   map[packet.PacketType][]packet.PacketListener
     screen      Screen
+    serverIp    []byte
     Iam         PlayerN
     Players     [2]Player
     Started     bool
@@ -87,7 +89,7 @@ type Client struct {
 }
 
 func (c *Client) Start() {
-    me := &c.Players[c.Iam]
+    var me *Player = nil
     /*
     var other *Player
     if c.Iam == 0 { 
@@ -99,45 +101,17 @@ func (c *Client) Start() {
     //bd := rl.NewVector2(0, 0)
     firstStart := true
     for !rl.WindowShouldClose() { // main loop
-        if c.Conn == nil {
-            c.render()
-            continue 
-        }
-        if c.Started && firstStart {
+        if c.Conn != nil && c.Started && firstStart {
             firstStart = false
+            me = &c.Players[c.Iam]
             go c.UpdateServer()
         }
 
-        if c.Started { 
-            keyInput(me) 
-            /*
-            if p2t == 0 && other.Pos != other.NewPos {
-                p2t = other.NewPos - other.Pos    
-            }
-            if (bd.X == 0 && bd.Y == 0) && c.Ball.Pos != c.Ball.NewPos {
-                bd.X = c.Ball.NewPos.X - c.Ball.Pos.X
-                bd.Y = c.Ball.NewPos.Y - c.Ball.Pos.Y
-            }
-
-            if other.Pos >= other.NewPos {
-                other.Pos = other.NewPos
-                p2t = 0 
-            }
-            if p2t != 0 {
-                other.Pos += p2t / 2
-            }
-
-            /*
-            if c.Ball.Pos == c.Ball.NewPos { 
-                bd.X = 0
-                bd.Y = 0
-            }
-            if bd.X != 0 && bd.Y != 0 {
-                c.Ball.Pos.X += bd.X / 2
-                c.Ball.Pos.Y += bd.Y / 2
-            }
-            */
+        switch c.screen.disp {
+        case StartMenu: ipInput(c)
+        case Game: keyInput(me) 
         }
+
         c.render()   
     }
 
@@ -165,15 +139,20 @@ func (c *Client) UpdateServer() {
     }
 }
 
-func (c *Client) Connect(ip *net.TCPAddr) error {
+func (c *Client) Connect() error {
+    ip, err := net.ResolveTCPAddr("tcp", string(c.serverIp))
+    if err != nil {
+        fmt.Println("Failed to resolve tcp addr: ", err)
+        return err
+    }
     conn, err := net.DialTCP("tcp", nil, ip)
     fmt.Println("Establishing connection to:", ip.IP)
     if err != nil {
         fmt.Println("Failed to dial server: ", err)
-        rl.CloseWindow()
         return err
     }
-    writeServer(ip.AddrPort().String())
+    writeServer(string(c.serverIp))
+    c.screen.disp = Game
 
     if c.Conn != nil {
         c.Conn.Close()
@@ -182,7 +161,7 @@ func (c *Client) Connect(ip *net.TCPAddr) error {
     go c.listen()       
     fmt.Println("Connected to:", c.Conn.RemoteAddr())
 
-    connect := &packet.Connect { Name: "Player 1" }
+    connect := &packet.Connect { Name: "Player" }
     c.SendPacket(connect)
 
     return nil
@@ -289,4 +268,11 @@ func writeServer(ip string) {
 }
 
 
+func readLastIp() []byte {
+    buf, err := os.ReadFile("last_server")
+    if err != nil {
+        return make([]byte, 0, 21)
+    }
 
+    return buf
+}

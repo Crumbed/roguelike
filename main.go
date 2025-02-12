@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"main/client"
 	"main/packet"
 	"main/server"
@@ -38,8 +37,6 @@ func main() {
         return
     }
 
-    // Read last file
-    if ip == "" { ip = readLastIp() }
 
     c := client.NewClient()   
     c.AddPacketListener(packet.SCJoinResponse, client.SCJoinResponseListener)
@@ -58,14 +55,6 @@ func main() {
     c.Start()
 }
 
-func readLastIp() string {
-    buf, err := os.ReadFile("last_server")
-    if err != nil {
-        log.Fatal("Failed to get last sever")
-    }
-
-    return string(buf)
-}
 
 
 

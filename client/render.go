@@ -14,6 +14,24 @@ const (
     Game 
 )
 
+const (
+    IpSize  float32 = 8
+    IpLen   float32 = IpSize * 21
+    EntryW  float32 = IpLen + 10 
+    EntryH  float32 = IpSize + 20
+    EntryX  float32 = float32(CenterX) - EntryW / 2
+    EntryY  float32 = float32(CenterY) - EntryH
+
+    PlayFS  float32 = 16
+    PlayW   float32 = EntryW
+    PlayH   float32 = PlayFS + 5
+    PlayX   float32 = float32(CenterX) - PlayW / 2
+    PlayY   float32 = EntryY + EntryH + 5
+)
+
+var TextBox = rl.NewRectangle(EntryX, EntryY, EntryW, EntryH)
+var PlayBtn = rl.NewRectangle(PlayX, PlayY, PlayW, PlayH)
+var ConnectError = ""
 
 func InitScreen() Screen {
     rl.SetConfigFlags(rl.FlagWindowResizable)
@@ -22,9 +40,6 @@ func InitScreen() Screen {
     rl.SetTargetFPS(60)
 
     font := rl.LoadFont("assets/font.fnt")
-    //v := rl.MeasureTextEx(font, "Pong Online", 50, 0)
-    //fmt.Println(v)
-
     return Screen { 
         w: Width,
         h: Height,
@@ -93,9 +108,26 @@ func (s *Screen) FinalizeRender() {
 
 
 func (c *Client) drawMenu() {
-    //rl.DrawTextEx(c.screen.font, "Pong Online", rl.NewVector2(0, 5), 50, 0, rl.White)
-    //rl.DrawTexture(texture, 0, 0, rl.White)
-    rl.DrawTextEx(c.screen.font, "pong online", rl.NewVector2(5, 5), 32, 0, rl.White)
+    rl.DrawTextEx(c.screen.font, "pong online", rl.NewVector2(float32(CenterX) - 264, 50), 48, 0, rl.White)
+    rl.DrawRectangleRec(TextBox, rl.DarkGray)
+    if len(c.serverIp) == 0 {
+        rl.DrawTextEx(c.screen.font, "ip : port", rl.NewVector2(EntryX + 5, EntryY + 10), IpSize, 0, rl.Gray)
+    } else {
+        rl.DrawTextEx(c.screen.font, string(c.serverIp), rl.NewVector2(EntryX + 5, EntryY + 10), IpSize, 0, rl.White)
+    }
+
+    if ConnectError != "" {
+        rl.DrawTextEx(c.screen.font, ConnectError, rl.NewVector2(EntryX, EntryY - 10), 8, 0, rl.Red)
+    }
+
+    rl.DrawRectangleRec(PlayBtn, rl.DarkGreen)
+    rl.DrawTextEx(c.screen.font, "play", rl.NewVector2(float32(CenterX) - 32, PlayY + 2), PlayFS, 0, rl.White)
+
+    /*
+    rl.DrawTextEx(c.screen.font, "111.111.111.111:65535", rl.NewVector2(0, 0), 8, 0, rl.White)
+    le := rl.MeasureTextEx(c.screen.font, "111.111.111.111:65535", 8, 0)
+    fmt.Println(le)
+    */
 }
 
 
@@ -147,4 +179,28 @@ func (c *Client) drawScore(p1, p2 *Player) {
     
     rl.DrawTextEx(c.screen.font, p1str, p1pos, 100, 0, rl.Gray)
     rl.DrawTextEx(c.screen.font, p2str, p2pos, 100, 0, rl.Gray)
+}
+
+func ipInput(c *Client) {
+    key := rl.GetCharPressed()
+
+    for key > 0 {
+        if len(c.serverIp) >= 21 { break }
+        if key != 46 && (key < 48 || key > 58) { break }
+        c.serverIp = append(c.serverIp, byte(key))
+        key = rl.GetCharPressed()
+    }
+
+    if rl.IsKeyPressed(rl.KeyBackspace) && len(c.serverIp) > 0 {
+        c.serverIp = c.serverIp[:len(c.serverIp)-1]
+    }
+
+    clickedPlay := rl.CheckCollisionPointRec(rl.GetMousePosition(), PlayBtn) && rl.IsMouseButtonPressed(rl.MouseButtonLeft)
+    if rl.IsKeyPressed(rl.KeyEnter) || clickedPlay {
+        err := c.Connect()
+        if err != nil {
+            ConnectError = "connection failed."
+            return
+        }
+    }
 }
