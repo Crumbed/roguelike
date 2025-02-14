@@ -126,6 +126,7 @@ func (s *GameServer) listen() {
         conn, err := s.listener.Accept()
         if err != nil {
             s.Log("Accept error:", err)
+
             continue
         }
 

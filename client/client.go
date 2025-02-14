@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"main/packet"
+	"math"
 	"net"
 	"os"
 	"time"
@@ -34,10 +35,15 @@ const (
 
 
 type Player struct {
-    NewPos  int32
-    Pos     int32
+    Target  float32
+    Pos     float32
     Score   uint8
 }
+func (p *Player) interp() {
+    if int32(p.Pos) == int32(p.Target) { return }
+    p.Pos = rl.Lerp(p.Pos, p.Target, 0.5)
+}
+
 func (p *Player) render(n PlayerN) {
     var x int32
     if n == Player1 { 
@@ -47,7 +53,7 @@ func (p *Player) render(n PlayerN) {
     }
 
     rl.DrawRectangle(
-        x, p.Pos,
+        x, int32(p.Pos),
         PW, PH,
         rl.White)
 }
@@ -57,8 +63,13 @@ type Ball struct {
     NewPos  rl.Vector2
     Pos     rl.Vector2
 }
+func (b *Ball) interp() {
+    if rl.Vector2Equals(b.Pos, b.NewPos) { return }
+    b.Pos = rl.Vector2Lerp(b.Pos, b.NewPos, 0.5)
+}
+
 func (b *Ball) render() {
-    rl.DrawRectangleV(b.NewPos, BallRect, rl.White)
+    rl.DrawRectangleV(b.Pos, BallRect, rl.White)
 }
 
 
@@ -98,6 +109,15 @@ type Client struct {
     Started     bool
     Ball        Ball
 }
+func (c *Client) GetOtherPlayer() *Player {
+    switch c.Iam {
+    case Player1: return &c.Players[Player2]
+    case Player2: return &c.Players[Player1]
+    default:
+        fmt.Println("HOW DID THIS HAPPEN YOU FUCKING IDIOT")
+        return nil
+    }
+}
 
 func (c *Client) Start() {
     go c.UpdateServer()
@@ -105,7 +125,12 @@ func (c *Client) Start() {
     for !rl.WindowShouldClose() { // main loop
         switch c.screen.disp {
         case StartMenu: ipInput(c)
-        case Game: keyInput(&c.Players[c.Iam]) 
+        case Game: moveInput(&c.Players[c.Iam]) 
+        }
+
+        if c.Started {
+            c.Ball.interp()
+            c.GetOtherPlayer().interp()
         }
 
         c.render()   
@@ -116,7 +141,7 @@ func (c *Client) Start() {
 }
 
 func (c *Client) UpdateServer() {
-    lastPos := int32(0)
+    lastPos := float32(0)
     var p *Player
 
     for {
@@ -126,7 +151,7 @@ func (c *Client) UpdateServer() {
         lastPos = p.Pos
         packet := &packet.PaddleMove {
             PlayerN: uint8(c.Iam),
-            Pos: p.Pos,
+            Pos: int32(p.Pos),
         }
         
         err := c.SendPacket(packet)
@@ -161,7 +186,10 @@ func (c *Client) Connect() error {
 
     connect := &packet.Connect { Name: "Player" }
     err = c.SendPacket(connect)
-    fmt.Println(err)
+    if err != nil {
+        fmt.Println(err) // jensen made past this point, then died
+        // Everything is working now, even though i didnt change anything...
+    }
 
     return nil
 }
@@ -234,11 +262,11 @@ func (c *Client) AddPacketListener(
 }
 
 
-func keyInput(p *Player) {
+func moveInput(p *Player) {
     if rl.IsKeyDown(rl.KeyJ) || rl.IsKeyDown(rl.KeyDown) || rl.IsKeyDown(rl.KeyS) {
-        p.Pos += int32(500 * rl.GetFrameTime())
-        if p.Pos + PH >= Height {
-            p.Pos = Height - PH
+        p.Pos += float32(math.Trunc(500 * float64(rl.GetFrameTime())))
+        if int32(p.Pos) + PH >= Height {
+            p.Pos = float32(Height - PH)
             return
         }
 
@@ -247,7 +275,7 @@ func keyInput(p *Player) {
         }
     }
     if rl.IsKeyDown(rl.KeyK) || rl.IsKeyDown(rl.KeyUp) || rl.IsKeyDown(rl.KeyW) {
-        p.Pos += int32(-500 * rl.GetFrameTime())
+        p.Pos += float32(math.Trunc(-500 * float64(rl.GetFrameTime())))
         if p.Pos <= 0 {
             p.Pos = 0
             return
