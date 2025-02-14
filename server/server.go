@@ -47,12 +47,14 @@ type GameServer struct {
     Players     [2]*Profile     // Players 1 & 2 profiles
     logs        []string
     State       *GameState
+    Rules       *GameRules
     p_listeners map[packet.PacketType][]packet.PacketListener
     updateFns   *list.List
     DeltaTime   float64         // DeltaTime seconds
 }
 
 func NewServer(listenerAddr string) *GameServer {
+    rules := NewGameRules()
     return &GameServer {
         addr: listenerAddr,
         msgCh: make(chan Message, 10),
@@ -63,7 +65,8 @@ func NewServer(listenerAddr string) *GameServer {
         updateFns: list.New(),
         logs: make([]string, 0, 10),
         Players: [2]*Profile { nil, nil },
-        State: NewGame(),
+        State: NewGame(rules),
+        Rules: rules,
     }
 }
 
@@ -78,6 +81,8 @@ func (s *GameServer) Start() error {
     if err != nil { return err }
     defer li.Close()
     s.listener = li
+    fmt.Println("InitVel:", s.Rules.InitVel)
+    fmt.Println("IncVel:", s.Rules.IncVel)
 
     //go s.startReading()
     go s.listen()
@@ -179,7 +184,7 @@ func (s *GameServer) PlayerDisconnect(p *Profile) {
 
     if !s.State.Running { return }
     s.Log("Stopping game...")
-    s.State = NewGame()
+    s.State = NewGame(s.Rules)
     s.SendPacket(&packet.GameStop { Reason: "Player disconnected" })
 }
 

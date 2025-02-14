@@ -69,8 +69,8 @@ func (p *Player) CalculateHitZone(b *Ball) {
 }
 
 
-func NewBall() *Ball {
-    ball := &Ball{ Vel: Velocity{InitVel, 0, InitVel} }
+func NewBall(initVel float64) *Ball {
+    ball := &Ball{ initVel: initVel }
     ball.Box.width = int32(BallS)
     ball.Box.height = int32(BallS)
     ball.Box.pos = &ball.Pos
@@ -81,6 +81,7 @@ type Ball struct {
     Pos     Position
     Vel     Velocity
     Box     HitBox
+    initVel float64
 }
 
 // dir should be -1 or 1 for left or right
@@ -88,15 +89,15 @@ func (b *Ball) Init(dir float64) {
     half := math.Trunc(BallS / 2)
     b.Pos.X = CenterX - half
     b.Pos.Y = CenterY - half
-    b.Vel.Set(InitVel * dir, 0)
+    b.Vel.Set(b.initVel * dir, 0)
     //b.Vel.Set(InitVel, 0)
     //b.Vel.SetRotation(Radians(angle))
 }
 
-func (b *Ball) IncreaseVel() {
+func (b *Ball) IncreaseVel(n float64) {
     vlen := b.Vel.Len()
     //if vlen >= 700 { return }
-    b.Vel.SetUnitLength(vlen + 100)
+    b.Vel.SetUnitLength(vlen + n)
 }
 
 // first bool is paddle collision
@@ -137,14 +138,15 @@ type GameState struct {
     P1      *Player
     P2      *Player
     Ball    *Ball
+    Rules   *GameRules
     Running bool
 }
 
-func NewGame() *GameState {
+func NewGame(rules *GameRules) *GameState {
     return &GameState {
         P1: NewPlayer(0),
         P2: NewPlayer(1),
-        Ball: NewBall(),
+        Ball: NewBall(rules.InitVel),
         Running: false,
     }
 }
@@ -175,7 +177,7 @@ var UpdateBall = NewUpdate(func(s *GameServer) UpStatus {
     // paddle collision
     if ball.CheckPaddleCol(p) {
         p.CalculateHitZone(ball)
-        ball.IncreaseVel()
+        ball.IncreaseVel(s.Rules.IncVel)
         //ball.Vel.X *= -1
         //fmt.Println("Paddle collision:", ball.Vel)
     } else if ball.CheckScore() {

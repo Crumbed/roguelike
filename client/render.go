@@ -168,7 +168,7 @@ func (c *Client) drawGame() {
     rl.DrawRectangle(0, 0, Width, 1, rl.DarkGray) // top border
     rl.DrawRectangle(0, 0, 1, Height, rl.DarkGray) // left border
     rl.DrawRectangle(0, Height - 1, Width, 1, rl.DarkGray) // bottom border
-    rl.DrawRectangle(Width - 1, 0, Height, 1, rl.DarkGray) // right border
+    rl.DrawRectangle(Width - 1, 0, 1, Height, rl.DarkGray) // right border
 
     // score
     p1str := fmt.Sprintf("%d", p1.Score)
