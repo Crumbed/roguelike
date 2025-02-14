@@ -52,6 +52,7 @@ func CSConnectListener(context *packet.PacketContext, data packet.Packet) {
 func SSPaddleMoveListener(context *packet.PacketContext, data packet.Packet) {
     server := context.Handler.(*GameServer)
     move := data.(*packet.PaddleMove)
+    if !server.State.Started { return }
 
     var otherPlayer uint8
     if move.PlayerN == 0 {
