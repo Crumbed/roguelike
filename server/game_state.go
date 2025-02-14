@@ -2,7 +2,6 @@ package server
 
 import (
 	//"fmt"
-	"main/packet"
 	"math"
 
 	//. "github.com/gen2brain/raylib-go/raylib"

@@ -182,7 +182,7 @@ func (c *Client) drawScore(p1, p2 *Player) {
     rl.DrawTextEx(c.screen.font, p2str, p2pos, 64, 0, rl.Gray)
 }
 
-func ipInput(c *Client) {
+func (c *Client) ipInput() {
     key := rl.GetCharPressed()
 
     for key > 0 {

@@ -124,8 +124,8 @@ func (c *Client) Start() {
 
     for !rl.WindowShouldClose() { // main loop
         switch c.screen.disp {
-        case StartMenu: ipInput(c)
-        case Game: moveInput(&c.Players[c.Iam]) 
+        case StartMenu: c.ipInput()
+        case Game: c.moveInput(&c.Players[c.Iam]) 
         }
 
         if c.Started {
