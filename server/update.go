@@ -68,7 +68,7 @@ var SendScoreUpdate = NewUpdate(func(s *GameServer) UpStatus {
 const (
     TargetTPS = 60
     TargetTickTime = 1.0 / float64(TargetTPS)
-    Cooldown time.Duration = time.Millisecond * 10
+    Cooldown time.Duration = time.Millisecond * 5
 )
 
 func (s *GameServer) UpdateClients() {
@@ -85,7 +85,6 @@ func (s *GameServer) UpdateClients() {
         time.Sleep(Cooldown)
     }
 }
-
 
 func (s *GameServer) updateTicks(elapsed *float64) {
     for *elapsed >= TargetTickTime {

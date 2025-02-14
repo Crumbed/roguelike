@@ -2,8 +2,8 @@ package server
 
 import (
 	//"fmt"
+	"main/packet"
 	"math"
-
 	//. "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -179,6 +179,12 @@ var UpdateBall = NewUpdate(func(s *GameServer) UpStatus {
         //fmt.Println("Paddle collision:", ball.Vel)
     } else if ball.CheckScore() {
         s.State.ScoreAgainst(p)
+        score := &packet.Score {
+            P1: s.State.P1.Score,
+            P2: s.State.P2.Score,
+        }
+
+        s.SendPacket(score)
     }
 
     return Ok
