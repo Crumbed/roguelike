@@ -28,21 +28,49 @@ func (up *UpdateFn) Check(server *GameServer) UpStatus {
 }
 
 var ConfirmReady = NewUpdate(func(s *GameServer) UpStatus {
-    var p *Profile = nil
+    if !s.State.Running { return Ok }
     if s.Players[0].Started && s.Players[1].Started {
-        return Remove
-    } else if s.Players[0].Started {
-        p = s.Players[1]
+        return Ok
+    }
+    var resend []*Profile = nil
+    if !s.Players[0].Started && !s.Players[1].Started {
+        resend = s.Players[:]
+    } else if !s.Players[0].Started {
+        resend = s.Players[0:1]
     } else {
-        p = s.Players[0]
+        resend = s.Players[1:2]
     }
 
-    fmt.Println("Resending start packet to:", p.Conn.RemoteAddr())
-    s.SendPacketTo(&packet.GameStart{}, p) 
+    for _, p := range resend {
+        fmt.Println("Resending start packet to:", p.Conn.RemoteAddr())
+        s.SendPacketTo(&packet.GameStart{}, p) 
+    }
+    return Ok
+}, 15)
+
+var ConfirmStop = NewUpdate(func(s *GameServer) UpStatus {
+    if s.State.Running { return Ok }
+    if s.Players[0] == nil && s.Players[1] == nil { return Ok }
+    if s.Players[0] != nil && s.Players[1] != nil { // potentially future issue, shouldnt happen now
+        fmt.Println("Both players exist but game isnt running???")
+        return Ok
+    }
+    var p *Profile
+    if s.Players[0] != nil {
+        p = s.Players[0]
+    } else {
+        p = s.Players[1]
+    }
+
+    if p.Started {
+        fmt.Println("Resending stop packet to:", p.Conn.RemoteAddr())
+        s.SendPacketTo(&packet.GameStop{}, p) 
+    }
     return Ok
 }, 15)
 
 var SendBallMove = NewUpdate(func(s *GameServer) UpStatus {
+    if !s.State.Running { return Ok }
     ball := s.State.Ball
     s.SendPacket(&packet.BallMove {
         X: float32(ball.Pos.X),
@@ -53,6 +81,7 @@ var SendBallMove = NewUpdate(func(s *GameServer) UpStatus {
 }, 1)
 
 var SendScoreUpdate = NewUpdate(func(s *GameServer) UpStatus {
+    if !s.State.Running { return Ok }
     score := &packet.Score {
         P1: s.State.P1.Score,
         P2: s.State.P2.Score,

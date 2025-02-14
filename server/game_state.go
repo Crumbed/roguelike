@@ -137,7 +137,7 @@ type GameState struct {
     P1      *Player
     P2      *Player
     Ball    *Ball
-    Started bool
+    Running bool
 }
 
 func NewGame() *GameState {
@@ -145,7 +145,7 @@ func NewGame() *GameState {
         P1: NewPlayer(0),
         P2: NewPlayer(1),
         Ball: NewBall(),
-        Started: false,
+        Running: false,
     }
 }
 
@@ -160,6 +160,7 @@ func (state *GameState) ScoreAgainst(p *Player) {
 }
 
 var UpdateBall = NewUpdate(func(s *GameServer) UpStatus {
+    if !s.State.Running { return Ok }
     ball := s.State.Ball
     ball.Pos.ApplyVelocity(&ball.Vel, s.DeltaTime)
 

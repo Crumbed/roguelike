@@ -12,6 +12,23 @@ func (p *GameStart) Serialize() ([]byte, error) {
 }
 func (p *GameStart) Deserialize(data []byte) error { return nil }
 
+// >5 | PacketType 1 | Reason len 4 | reason ~
+type GameStop struct {
+    Reason  string
+}
+func (p *GameStop) GetType() PacketType { return BWGameStop }
+func (p *GameStop) Serialize() ([]byte, error) {
+    buf := bytes.NewBuffer(make([]byte, 0, len(p.Reason) + 5))
+    _ = buf.WriteByte(byte(BWGameStop))
+    err := SerializeString(buf, p.Reason)
+    return buf.Bytes(), err
+}
+func (p *GameStop) Deserialize(data []byte) error {
+    buf := bytes.NewBuffer(data)
+    reason, err := DeserializeString(buf)
+    p.Reason = reason
+    return err
+}
 
 // 6 | PacketType 1, PlayerN 1, Pos 4
 type PaddleMove struct {

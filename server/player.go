@@ -41,7 +41,7 @@ func CSConnectListener(context *packet.PacketContext, data packet.Packet) {
     server.ipconns[sender.RemoteAddr()] = profile
     server.Logf("Player connected:\n%s\n", profile)
     if start {
-        server.State.Started = true
+        server.State.Running = true
         err := server.SendPacket(&packet.GameStart{})
         if err != nil {
             fmt.Println("Failed to start game:", err)
@@ -52,7 +52,7 @@ func CSConnectListener(context *packet.PacketContext, data packet.Packet) {
 func SSPaddleMoveListener(context *packet.PacketContext, data packet.Packet) {
     server := context.Handler.(*GameServer)
     move := data.(*packet.PaddleMove)
-    if !server.State.Started { return }
+    if !server.State.Running { return }
 
     var otherPlayer uint8
     if move.PlayerN == 0 {
@@ -70,6 +70,10 @@ func SSGameStartListener(context *packet.PacketContext, data packet.Packet) {
     sender.Started = true
 }
 
+func SSGameStopListener(context *packet.PacketContext, data packet.Packet) {
+    sender := context.Sender.(*Profile)
+    sender.Started = false
+}
 
 
 type Profile struct {

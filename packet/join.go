@@ -7,7 +7,6 @@ import "bytes"
 type Connect struct {
     Name    string
 }
-
 func (p *Connect) GetType() PacketType { return CSConnect }
 func (p *Connect) Serialize() ([]byte, error) {
     buf := bytes.NewBuffer(make([]byte, 0, len(p.Name) + 5))

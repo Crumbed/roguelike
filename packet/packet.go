@@ -34,6 +34,7 @@ const (
     BWPaddleMove                // tells both server & client about paddle movement
     SCBallMove                  // tells client updated ball position
     SCScore                     // tells client the current score
+    BWGameStop                  // tells client to stop the game, then client parrots the packet to confirm
     //SCAddPlayer                 // tells other client to add another player
 )
 
@@ -46,6 +47,7 @@ func (t *PacketType) InitPacket() Packet {
     case BWPaddleMove: data = &PaddleMove{}
     case SCBallMove: data = &BallMove{}
     case SCScore: data = &Score{}
+    case BWGameStop: data = &GameStop{}
     //case SCAddPlayer: data = &AddPlayer{}
     default: 
         fmt.Println("Invalid PacketType:", *t)

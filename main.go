@@ -40,7 +40,8 @@ func main() {
 
     c := client.NewClient()   
     c.AddPacketListener(packet.SCJoinResponse, client.SCJoinResponseListener)
-    c.AddPacketListener(packet.BWGameStart, client.SCGameStartListener)
+    c.AddPacketListener(packet.BWGameStart, client.CCGameStartListener)
+    c.AddPacketListener(packet.BWGameStop, client.CCGameStopListener)
     c.AddPacketListener(packet.BWPaddleMove, client.CCPaddleMoveListener)
     c.AddPacketListener(packet.SCBallMove, client.SCBallMoveListener)
     c.AddPacketListener(packet.SCScore, client.SCScoreListener)

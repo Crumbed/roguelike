@@ -20,11 +20,13 @@ func StartServer(port string) {
     server.AddPacketListener(packet.CSConnect, CSConnectListener)
     server.AddPacketListener(packet.BWPaddleMove, SSPaddleMoveListener)
     server.AddPacketListener(packet.BWGameStart, SSGameStartListener)
+    server.AddPacketListener(packet.BWGameStop, SSGameStopListener)
 
     server.AddUpdateFn(&UpdateBall)
     server.AddUpdateFn(&ConfirmReady)
     server.AddUpdateFn(&SendBallMove)
     server.AddUpdateFn(&SendScoreUpdate)
+    server.AddUpdateFn(&ConfirmStop)
     err := server.Start()
     if err != nil { log.Fatal(err) }
 }
@@ -77,15 +79,15 @@ func (s *GameServer) Start() error {
     defer li.Close()
     s.listener = li
 
-    go s.startReading()
+    //go s.startReading()
     go s.listen()
     go s.handleMsgs()
+    go s.UpdateClients()
 
     firstStart := true
     for {
-        if firstStart && s.State.Started {
+        if firstStart && s.State.Running {
             firstStart = false
-            go s.UpdateClients()
         }
     }
 
@@ -146,10 +148,14 @@ func (s *GameServer) read(c net.Conn) {
         if err != nil {
             if err == io.EOF {
                 ip := c.RemoteAddr()
+                prof := s.ipconns[ip]
                 s.RemovePlayerIp(ip)
+                if prof != s.Players[0] && prof != s.Players[1] {
+                    s.Logf("Kicking %s because game is full\n", ip)
+                    return
+                }
                 s.Logf("Player %s has disconnected\n", ip)
-                s.Log("Stopping server...")
-                os.Exit(0)
+                s.PlayerDisconnect(prof)
                 return 
             }
             s.Log("Read err:", err)
@@ -162,6 +168,19 @@ func (s *GameServer) read(c net.Conn) {
             Packet: p,
         }
     }
+}
+
+func (s *GameServer) PlayerDisconnect(p *Profile) {
+    if s.Players[0] == p {
+        s.Players[0] = nil
+    } else {
+        s.Players[1] = nil
+    }
+
+    if !s.State.Running { return }
+    s.Log("Stopping game...")
+    s.State = NewGame()
+    s.SendPacket(&packet.GameStop { Reason: "Player disconnected" })
 }
 
 func (s *GameServer) SendPacket(packet packet.Packet) error {

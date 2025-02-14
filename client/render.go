@@ -11,6 +11,7 @@ import (
 type Display uint8
 const (
     StartMenu Display = iota
+    Waiting
     Game 
 )
 
@@ -131,26 +132,61 @@ func (c *Client) drawMenu() {
     */
 }
 
+const (
+    WaitingFontSize = 24
+    WaitingTextLen = 23 * WaitingFontSize
+)
+func (c *Client) drawWaiting() {
+    rl.ClearBackground(rl.Black)
+    var otherPlayer PlayerN
+    switch c.Iam {
+    case Player1: otherPlayer = Player2
+    case Player2: otherPlayer = Player1
+    }
+    
+    text := fmt.Sprintf("waiting for player %d...", otherPlayer + 1)
+    pos := rl.NewVector2(float32(CenterX) - WaitingTextLen / 2, float32(CenterY) - WaitingFontSize / 2)
+    rl.DrawTextEx(c.screen.font, text, pos, 24, 0, rl.White)
+}
 
 func (c *Client) drawGame() {
+    if !c.Started { 
+        c.screen.disp = Waiting
+        c.drawWaiting()
+        return 
+    }
+
     p1, p2 := &c.Players[0], &c.Players[1]
     rl.ClearBackground(rl.Black)
+    // center line
     rl.DrawRectangle(
         CenterX - 1, 0,
         2, Height,
         rl.Gray)
 
-    if !c.Started { return }
-    c.drawScore(p1, p2)
+    // borders
+    rl.DrawRectangle(0, 0, Width, 1, rl.DarkGray) // top border
+    rl.DrawRectangle(0, 0, 1, Height, rl.DarkGray) // left border
+    rl.DrawRectangle(0, Height - 1, Width, 1, rl.DarkGray) // bottom border
+    rl.DrawRectangle(Width - 1, 0, Height, 1, rl.DarkGray) // right border
 
-    // player 1 paddle
-    p1.render(0)
-    // player 2 paddle
-    p2.render(1)
+    // score
+    p1str := fmt.Sprintf("%d", p1.Score)
+    p2str := fmt.Sprintf("%d", p2.Score)
+    p1pos := rl.NewVector2(float32(CenterX) - 20 - float32(len(p1str)) * 64 + 8, 0)
+    p2pos := rl.NewVector2(float32(CenterX) + 20, 0)
+    
+    rl.DrawTextEx(c.screen.font, p1str, p1pos, 64, 0, rl.Gray)
+    rl.DrawTextEx(c.screen.font, p2str, p2pos, 64, 0, rl.Gray)
+
+    // paddles
+    p1.render(Player1)
+    p2.render(Player2)
 
     // ball
     c.Ball.render()
 }
+
 
 func (c *Client) render() {
     m := rl.GetMousePosition()
@@ -167,19 +203,13 @@ func (c *Client) render() {
 
     switch c.screen.disp {
     case StartMenu: c.drawMenu()
+    case Waiting: c.drawWaiting()
     case Game: c.drawGame()
     }
 }
 
 
 func (c *Client) drawScore(p1, p2 *Player) {
-    p1str := fmt.Sprintf("%d", p1.Score)
-    p2str := fmt.Sprintf("%d", p2.Score)
-    p1pos := rl.NewVector2(float32(CenterX) - 20 - float32(len(p1str)) * 64, 0)
-    p2pos := rl.NewVector2(float32(CenterX) + 20, 0)
-    
-    rl.DrawTextEx(c.screen.font, p1str, p1pos, 64, 0, rl.Gray)
-    rl.DrawTextEx(c.screen.font, p2str, p2pos, 64, 0, rl.Gray)
 }
 
 func (c *Client) ipInput() {

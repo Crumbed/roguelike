@@ -22,11 +22,20 @@ func SCJoinResponseListener(context *packet.PacketContext, p packet.Packet) {
     ConnectError = "game is full."
 }
 
-func SCGameStartListener(context *packet.PacketContext, p packet.Packet) {
+func CCGameStartListener(context *packet.PacketContext, p packet.Packet) {
     client := context.Handler.(*Client)
     client.Started = true
+    client.screen.disp = Game
     client.SendPacket(p)
     fmt.Println("Starting game...")
+}
+
+func CCGameStopListener(context *packet.PacketContext, p packet.Packet) {
+    client := context.Handler.(*Client)
+    client.Started = false
+    client.screen.disp = Waiting
+    client.SendPacket(p)
+    fmt.Println("Stopping game...")
 }
 
 func CCPaddleMoveListener(context *packet.PacketContext, data packet.Packet) {
