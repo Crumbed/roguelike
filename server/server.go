@@ -24,6 +24,7 @@ func StartServer(port string) {
     server.AddUpdateFn(&UpdateBall)
     server.AddUpdateFn(&ConfirmReady)
     server.AddUpdateFn(&SendBallMove)
+    server.AddUpdateFn(&SendScoreUpdate)
     err := server.Start()
     if err != nil { log.Fatal(err) }
 }

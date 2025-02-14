@@ -52,6 +52,15 @@ var SendBallMove = NewUpdate(func(s *GameServer) UpStatus {
     return Ok
 }, 1)
 
+var SendScoreUpdate = NewUpdate(func(s *GameServer) UpStatus {
+    score := &packet.Score {
+        P1: s.State.P1.Score,
+        P2: s.State.P2.Score,
+    }
+
+    s.SendPacket(score)
+    return Ok
+}, 60)
 
 
 
