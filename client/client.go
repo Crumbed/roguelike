@@ -262,7 +262,9 @@ func (c *Client) AddPacketListener(
 }
 
 
-func moveInput(p *Player) {
+func (c *Client) moveInput(p *Player) {
+    if !c.Started { return }
+
     if rl.IsKeyDown(rl.KeyJ) || rl.IsKeyDown(rl.KeyDown) || rl.IsKeyDown(rl.KeyS) {
         p.Pos += float32(math.Trunc(500 * float64(rl.GetFrameTime())))
         if int32(p.Pos) + PH >= Height {
