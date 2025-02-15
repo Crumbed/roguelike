@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"image/color"
 	"math"
 
 	"github.com/gen2brain/raylib-go/raylib"
@@ -106,7 +107,12 @@ func (s *Screen) FinalizeRender() {
     rl.EndDrawing()
 }
 
-
+func renderOutline(r rl.Rectangle, w float32, col color.RGBA) {
+    rl.DrawRectangleV(rl.NewVector2(r.X-w, r.Y-w), rl.NewVector2(r.Width+w*2, w), col) // top
+    rl.DrawRectangleV(rl.NewVector2(r.X-w, r.Y+r.Height), rl.NewVector2(r.Width+w*2, w), col) // bottom
+    rl.DrawRectangleV(rl.NewVector2(r.X-w, r.Y-w), rl.NewVector2(w, r.Height+w*2), col) // left
+    rl.DrawRectangleV(rl.NewVector2(r.X+r.Width, r.Y-w), rl.NewVector2(w, r.Height+w*2), col) // right
+}
 
 func (c *Client) drawMenu() {
     rl.ClearBackground(rl.Black)
@@ -123,6 +129,9 @@ func (c *Client) drawMenu() {
     }
 
     rl.DrawRectangleRec(PlayBtn, rl.DarkGreen)
+    if rl.CheckCollisionPointRec(c.screen.GetVMouse(), PlayBtn) {
+        renderOutline(PlayBtn, 1, rl.White)
+    }
     rl.DrawTextEx(c.screen.font, "play", rl.NewVector2(float32(CenterX) - 32, PlayY + 2), PlayFS, 0, rl.White)
 
     /*
@@ -208,10 +217,6 @@ func (c *Client) render() {
     }
 }
 
-
-func (c *Client) drawScore(p1, p2 *Player) {
-}
-
 func (c *Client) ipInput() {
     key := rl.GetCharPressed()
 
@@ -226,7 +231,11 @@ func (c *Client) ipInput() {
         c.serverIp = c.serverIp[:len(c.serverIp)-1]
     }
 
-    clickedPlay := rl.CheckCollisionPointRec(rl.GetMousePosition(), PlayBtn) && rl.IsMouseButtonPressed(rl.MouseButtonLeft)
+    clickedPlay := false
+    if rl.IsMouseButtonPressed(rl.MouseButtonLeft) {
+        mouse := c.screen.GetVMouse()
+        clickedPlay = rl.CheckCollisionPointRec(mouse, PlayBtn)
+    }
     if rl.IsKeyPressed(rl.KeyEnter) || clickedPlay {
         err := c.Connect()
         if err != nil {
@@ -234,4 +243,11 @@ func (c *Client) ipInput() {
             return
         }
     }
+}
+
+func (s *Screen) GetVMouse() rl.Vector2 {
+    mouse := rl.GetMousePosition()
+    mouse.X = (mouse.X - (float32(rl.GetScreenWidth()) - (float32(Width) * s.scale)) * 0.5) / s.scale
+    mouse.Y = (mouse.Y - (float32(rl.GetScreenHeight()) - (float32(Height) * s.scale)) * 0.5) / s.scale
+    return mouse
 }
